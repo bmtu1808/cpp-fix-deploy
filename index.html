@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>cppfix — sửa lỗi C++ bằng AI</title>
-<link rel="icon" type="image/svg+xml" href="https://images.icon-icons.com/4394/PNG/512/269181_c-icon.png">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314171c'/%3E%3Ctext x='32' y='40' font-family='Arial,Helvetica,sans-serif' font-weight='700' font-size='26' fill='%235fd068' text-anchor='middle'%3EC++%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
@@ -690,10 +690,10 @@ window.__CPP_HL = {
       <div class="settings-row">
         <input type="password" id="api-key-input" placeholder="Dán OpenRouter API key của bạn vào đây (sk-or-v1-...)">
         <select id="model-select">
-          <option value="deepseek/deepseek-chat-v3.1:free">deepseek/deepseek-chat-v3.1:free ⭐</option>
-          <option value="qwen/qwen3-coder:free">qwen/qwen3-coder:free</option>
+          <option value="qwen/qwen3-coder:free">qwen/qwen3-coder:free ⭐ (tốt nhất cho code)</option>
           <option value="meta-llama/llama-3.3-70b-instruct:free">meta-llama/llama-3.3-70b-instruct:free</option>
-          <option value="openrouter/free">openrouter/auto-free (không ổn định)</option>
+          <option value="deepseek/deepseek-r1:free">deepseek/deepseek-r1:free</option>
+          <option value="google/gemma-3-27b-it:free">google/gemma-3-27b-it:free</option>
         </select>
         <button class="save-key-btn" id="save-key-btn">Lưu key</button>
       </div>
@@ -1031,7 +1031,7 @@ async function runCode(){
     : `Code C++:\n\`\`\`cpp\n${code}\n\`\`\`\n\n(Không có stdin)`;
 
   try{
-    const model = modelSelect.value || 'deepseek/deepseek-chat-v3.1:free';
+    const model = modelSelect.value || 'qwen/qwen3-coder:free';
     const messages = [
       { role: 'system', content: RUN_SYSTEM_PROMPT },
       { role: 'user', content: userMsg }
@@ -1080,9 +1080,10 @@ Nếu code không có lỗi gì, has_errors = false, diff là code giữ nguyên
 Không thêm bất kỳ văn bản nào ngoài JSON.`;
 
 const FALLBACK_MODELS = [
-  'deepseek/deepseek-chat-v3.1:free',
-  'qwen/qwen3-coder:free',
   'meta-llama/llama-3.3-70b-instruct:free',
+  'qwen/qwen3-coder:free',
+  'deepseek/deepseek-r1:free',
+  'google/gemma-3-27b-it:free',
 ];
 
 async function callOpenRouter(apiKey, model, messages){
@@ -1090,7 +1091,9 @@ async function callOpenRouter(apiKey, model, messages){
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      'Authorization': `Bearer ${apiKey}`,
+      'HTTP-Referer': location.href,
+      'X-Title': 'cppfix.ai'
     },
     body: JSON.stringify({
       model,
@@ -1099,39 +1102,38 @@ async function callOpenRouter(apiKey, model, messages){
     })
   });
 
-  if(!resp.ok){
-    const errBody = await resp.json().catch(() => null);
-    const msg = errBody?.error?.message || `Lỗi ${resp.status}`;
-    throw new Error(msg);
-  }
+  let data = null;
+  try{ data = await resp.json(); }catch(_){ /* không phải JSON */ }
 
-  const data = await resp.json();
-  // Một số model trả về error trong body dù status 200
-  if(data.error){ throw new Error(data.error.message || 'Provider returned error'); }
-  const text = data.choices?.[0]?.message?.content?.trim();
-  if(!text) throw new Error('Model không trả về nội dung.');
+  if(!resp.ok){
+    const detail = data?.error?.message || data?.error?.code || JSON.stringify(data) || `HTTP ${resp.status}`;
+    throw new Error(`[${model}] ${detail}`);
+  }
+  if(data?.error){
+    const detail = data.error.message || data.error.code || JSON.stringify(data.error);
+    throw new Error(`[${model}] ${detail}`);
+  }
+  const text = data?.choices?.[0]?.message?.content?.trim();
+  if(!text) throw new Error(`[${model}] Model không trả về nội dung (có thể bị provider chặn hoặc quá tải).`);
   return text;
 }
 
 async function callWithFallback(apiKey, primaryModel, messages){
+  const tried = [];
   try {
     return await callOpenRouter(apiKey, primaryModel, messages);
   } catch(err) {
-    const msg = err?.message || '';
-    const isProviderErr = /provider|unavailable|overloaded|500|503|error/i.test(msg);
-    if(!isProviderErr) throw err;
-    // Thử lần lượt model dự phòng
+    tried.push(err.message || String(err));
     const fallbacks = FALLBACK_MODELS.filter(m => m !== primaryModel);
-    let lastErr = err;
     for(const fb of fallbacks){
       try {
         const result = await callOpenRouter(apiKey, fb, messages);
         modelSelect.value = fb;
         localStorage.setItem(STORAGE_MODEL, fb);
         return result;
-      } catch(e){ lastErr = e; }
+      } catch(e){ tried.push(e.message || String(e)); }
     }
-    throw lastErr;
+    throw new Error('Đã thử tất cả model free nhưng đều lỗi:\n' + tried.join('\n'));
   }
 }
 
@@ -1158,7 +1160,7 @@ async function fixCode(){
   result.classList.remove('show');
 
   try{
-    const model = modelSelect.value || 'deepseek/deepseek-chat-v3.1:free';
+    const model = modelSelect.value || 'qwen/qwen3-coder:free';
     const messages = [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: `Đây là code C++ cần kiểm tra và sửa lỗi:\n\n${code}` }
