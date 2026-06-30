@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cppfix — sửa lỗi C++ bằng AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+// ---- Mini C++ syntax highlighter — range-based, no double-escape ----
+window.__CPP_HL = {
+  highlight(code){
+    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const used = new Uint8Array(code.length + 1);
+    const ranges = [];
+
+    const patterns = [
+      { re: /\/\/[^\n]*/g,                              cls:'hl-comment' },
+      { re: /\/\*[\s\S]*?\*\//g,                        cls:'hl-comment' },
+      { re: /#[ \t]*(?:include|define|undef|ifdef|ifndef|endif|pragma|elif|if|else)[^\n]*/g, cls:'hl-pre' },
+      { re: /"(?:[^"\\]|\\.)*"/g,                       cls:'hl-str'     },
+      { re: /'(?:[^'\\]|\\.)*'/g,                       cls:'hl-str'     },
+      { re: /\b(?:int|long|short|unsigned|float|double|char|bool|void|string|wstring|auto|const|constexpr|static|struct|class|union|enum|namespace|using|template|typename|new|delete|nullptr|true|false|this|public|private|protected|virtual|override|final|inline|extern|typedef|sizeof|return|if|else|for|while|do|switch|case|break|continue|default|try|catch|throw|noexcept)\b/g, cls:'hl-kw' },
+      { re: /\b(?:std|cout|cin|cerr|clog|endl|flush|vector|list|map|unordered_map|set|unordered_set|pair|tuple|queue|deque|stack|array|string|sort|stable_sort|min|max|swap|make_pair|make_tuple|push_back|pop_back|push|pop|front|back|size|empty|begin|end|rbegin|rend|find|count|insert|erase|clear|getline|abs|sqrt|pow|floor|ceil|round|printf|scanf|sprintf|sscanf|memset|memcpy|strlen|strcmp|strcpy|INT_MAX|INT_MIN|LLONG_MAX|LLONG_MIN)\b/g, cls:'hl-builtin' },
+      { re: /\b\d+\.?\d*(?:[eE][+-]?\d+)?[fFlLuU]*\b/g, cls:'hl-num'  },
+      { re: /\b([a-zA-Z_]\w*)\s*(?=\()/g,               cls:'hl-fn'     },
+    ];
+
+    for(const {re, cls} of patterns){
+      re.lastIndex = 0;
+      let m;
+      while((m = re.exec(code)) !== null){
+        const s = m.index, e = s + m[0].length;
+        let ok = true;
+        for(let i = s; i < e; i++) if(used[i]){ ok = false; break; }
+        if(ok){
+          ranges.push({s, e, cls});
+          for(let i = s; i < e; i++) used[i] = 1;
+        }
+      }
+    }
+    ranges.sort((a,b) => a.s - b.s);
+
+    let html = '', pos = 0;
+    for(const {s, e, cls} of ranges){
+      if(pos < s) html += esc(code.slice(pos, s));
+      html += `<span class="${cls}">${esc(code.slice(s, e))}</span>`;
+      pos = e;
+    }
+    if(pos < code.length) html += esc(code.slice(pos));
+    return html;
+  }
+};
+</script>
+<style>
+  :root{
+    --bg: #14171c;
+    --panel: #1b1f26;
+    --panel-2: #20252d;
+    --border: #2c323c;
+    --text: #d8dce2;
+    --text-dim: #7d8694;
+    --accent: #5fd068;
+    --accent-dim: #3a8a45;
+    --amber: #ffb454;
+    --red: #f47174;
+    --blue: #7ad1ff;
+    --violet: #c9a6ff;
+    --mono: 'JetBrains Mono', monospace;
+    --display: 'Space Grotesk', sans-serif;
+  }
+  /* ---------- SYNTAX HIGHLIGHT TOKENS ---------- */
+  .hl-comment{ color: var(--text-dim); font-style: italic; }
+  .hl-pre    { color: var(--red); }
+  .hl-str    { color: var(--amber); }
+  .hl-kw     { color: var(--accent); }
+  .hl-builtin{ color: var(--blue); }
+  .hl-num    { color: var(--violet); }
+  .hl-fn     { color: var(--blue); opacity:.85; }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+  }
+  body{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  .wrap{
+    width:100%;
+    max-width: 1100px;
+    padding: 0 24px 80px;
+  }
+
+  /* ---------- TOP BAR ---------- */
+  .topbar{
+    width:100%;
+    border-bottom: 1px solid var(--border);
+    background: rgba(20,23,28,0.9);
+    position: sticky; top:0; z-index: 10;
+    backdrop-filter: blur(6px);
+  }
+  .topbar-inner{
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 14px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    font-family: var(--display);
+    font-weight:700;
+    font-size: 18px;
+    letter-spacing: -0.02em;
+  }
+  .dot-cluster{ display:flex; gap:5px; }
+  .dot{ width:9px; height:9px; border-radius:50%; }
+  .dot.r{background:var(--red);} .dot.a{background:var(--amber);} .dot.g{background:var(--accent);}
+  .badge-free{
+    font-size:11px;
+    color: var(--accent);
+    border:1px solid var(--accent-dim);
+    background: rgba(95,208,104,0.08);
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    padding: 56px 0 28px;
+  }
+  .eyebrow{
+    color: var(--text-dim);
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .eyebrow::before{ content:"// "; color: var(--accent-dim); }
+  h1{
+    font-family: var(--display);
+    font-size: clamp(32px, 5vw, 50px);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    max-width: 760px;
+  }
+  h1 .cursor{
+    display:inline-block;
+    width: 3px; height: 0.85em;
+    background: var(--accent);
+    margin-left: 6px;
+    animation: blink 1s step-end infinite;
+    vertical-align: -2px;
+  }
+  @keyframes blink{ 50%{opacity:0;} }
+  .sub{
+    margin-top: 18px;
+    color: var(--text-dim);
+    font-size: 15.5px;
+    max-width: 560px;
+    line-height: 1.6;
+  }
+  .sub b{ color: var(--text); font-weight: 600; }
+
+  /* ---------- BANNER ---------- */
+  .env-banner{
+    margin-top: 16px;
+    border: 1px solid rgba(255,180,84,0.4);
+    background: rgba(255,180,84,0.07);
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 13px;
+    color: var(--amber);
+    line-height: 1.7;
+    display: none;
+  }
+  .env-banner.show{ display: block; }
+  .env-banner strong{ color: #ffd090; }
+  .env-banner a{ color: #ffd090; }
+
+  /* ---------- SETTINGS / API KEY ---------- */
+  .settings-card{
+    margin-top: 28px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    overflow: hidden;
+  }
+  .settings-head{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .settings-head-left{ display:flex; align-items:center; gap:10px; }
+  .settings-head-left svg{ width:15px; height:15px; color: var(--amber); }
+  .settings-title{ font-family: var(--display); font-size: 14px; font-weight:600; }
+  .key-status{
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  .key-status.ok{ color: var(--accent); border-color: var(--accent-dim); background: rgba(95,208,104,0.08); }
+  .chevron{ width:14px; height:14px; color: var(--text-dim); transition: transform 0.15s ease; }
+  .settings-card.open .chevron{ transform: rotate(180deg); }
+  .settings-body{
+    display:none;
+    padding: 4px 18px 20px;
+    border-top: 1px solid var(--border);
+  }
+  .settings-card.open .settings-body{ display:block; }
+  .settings-row{
+    display:flex;
+    gap:10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .settings-row input[type="password"], .settings-row input[type="text"]{
+    flex: 1;
+    min-width: 220px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 7px;
+    outline:none;
+  }
+  .settings-row input:focus{ border-color: var(--accent-dim); }
+  .settings-row select{
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    padding: 10px 12px;
+    border-radius: 7px;
+    outline:none;
+  }
+  .save-key-btn{
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--display);
+    font-weight:600;
+    font-size: 13px;
+    padding: 10px 16px;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .save-key-btn:hover{ border-color: var(--accent-dim); color: var(--accent); }
+  .settings-note{
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+  .settings-note a{ color: var(--amber); text-decoration: none; border-bottom: 1px dotted var(--amber); }
+  .remember-row{
+    display:flex; align-items:center; gap:7px;
+    margin-top: 12px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+  }
+  .remember-row input{ accent-color: var(--accent); }
+
+  /* ---------- EDITOR CARD ---------- */
+  .editor-card{
+    margin-top: 40px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--panel);
+    box-shadow: 0 30px 60px -30px rgba(0,0,0,0.6);
+  }
+  .editor-tabs{
+    display:flex;
+    align-items:center;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 12px;
+  }
+  .tab{
+    padding: 11px 16px;
+    font-size: 13px;
+    color: var(--text-dim);
+    border-right: 1px solid var(--border);
+    display:flex; align-items:center; gap:8px;
+  }
+  .tab.active{ color: var(--text); background: var(--panel); }
+  .tab svg{ width:13px; height:13px; opacity:0.8; }
+
+  /* ---------- EDITOR LAYOUT ---------- */
+  .editor-body{
+    display: flex;
+    align-items: stretch;
+    min-height: 280px;
+    overflow: hidden;
+  }
+  /* Cột số dòng — chiều cao sync với textarea qua JS */
+  .line-gutter{
+    width: 48px;
+    min-width: 48px;
+    padding: 20px 10px 20px 0;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    color: #3d444e;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.65;
+    text-align: right;
+    user-select: none;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  /* Khu vực code — pre và textarea chồng nhau, cùng kích thước */
+  .code-area{
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+  }
+  pre#highlight-layer{
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    margin: 0;
+    padding: 20px;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.65;
+    white-space: pre;          /* KHÔNG wrap — khớp với textarea */
+    overflow: hidden;
+    pointer-events: none;
+    tab-size: 4;
+    color: var(--text);
+  }
+  pre#highlight-layer code{ font-family: var(--mono); background: none; }
+  textarea#code-input{
+    display: block;
+    width: 100%;
+    min-height: 280px;
+    resize: vertical;
+    background: transparent;
+    color: transparent;
+    caret-color: var(--text);
+    border: none;
+    outline: none;
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.65;
+    padding: 20px;
+    tab-size: 4;
+    white-space: pre;          /* KHÔNG wrap — khớp với pre */
+    overflow-x: auto;
+    overflow-y: auto;
+  }
+  textarea#code-input::placeholder{ color: #4a5158; white-space: pre-wrap; }
+
+  .editor-footer{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    background: var(--panel-2);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .hint-text{ font-size:12px; color: var(--text-dim); }
+  .hint-text kbd{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+  }
+
+  .fix-btn{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 14px;
+    color: #0c1410;
+    background: var(--accent);
+    border: none;
+    padding: 11px 22px;
+    border-radius: 7px;
+    cursor: pointer;
+    display:flex; align-items:center; gap:8px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+  }
+  .fix-btn:hover{ background:#74e07d; transform: translateY(-1px); box-shadow: 0 8px 20px -8px rgba(95,208,104,0.5); }
+  .fix-btn:active{ transform: translateY(0); }
+  .fix-btn:disabled{ background:#3a4047; color:#737982; cursor:not-allowed; transform:none; box-shadow:none; }
+  .fix-btn svg{ width:15px; height:15px; }
+
+  .spinner{
+    width:14px; height:14px;
+    border-radius:50%;
+    border: 2px solid rgba(12,20,16,0.25);
+    border-top-color: #0c1410;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  .run-btn{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    padding: 11px 20px;
+    border-radius: 7px;
+    cursor: pointer;
+    display:flex; align-items:center; gap:8px;
+    transition: border-color 0.12s ease, color 0.12s ease, transform 0.12s ease;
+  }
+  .run-btn:hover{ border-color: var(--blue); color: var(--blue); transform: translateY(-1px); }
+  .run-btn:disabled{ color:#737982; cursor:not-allowed; transform:none; }
+  .run-btn svg{ width:15px; height:15px; }
+
+  .console-card{
+    margin-top: 18px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: #0f1115;
+  }
+  .console-head{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 10px 16px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--border);
+    font-size: 12.5px;
+    color: var(--text-dim);
+  }
+  .stdin-toggle{
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .stdin-toggle:hover{ color: var(--text); border-color: var(--text-dim); }
+  .stdin-row{
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .stdin-row label{ font-size: 11.5px; color: var(--text-dim); display:block; margin-bottom: 8px; line-height: 1.5; }
+  .stdin-row label code{ background: var(--panel-2); border:1px solid var(--border); padding: 1px 5px; border-radius:4px; }
+  #stdin-input{
+    width:100%;
+    min-height: 56px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12.5px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    outline: none;
+    resize: vertical;
+  }
+  pre#console-output{
+    margin:0;
+    padding: 16px 18px;
+    font-size: 13px;
+    line-height: 1.7;
+    min-height: 90px;
+    max-height: 360px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    color: #c3f0c8;
+  }
+  .console-placeholder{ color: var(--text-dim); font-style: italic; }
+  pre#console-output .exit-ok{ color: var(--accent); display:block; margin-top:10px; }
+  pre#console-output .exit-err{ color: var(--red); display:block; margin-top:10px; }
+  pre#console-output .runtime-err{ color: #f0a4a5; }
+
+  /* ---------- RESULT ---------- */
+  .result{ margin-top: 36px; display:none; }
+  .result.show{ display:block; animation: fadeUp 0.35s ease; }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+
+  .result-status{
+    display:flex; align-items:center; gap:10px;
+    margin-bottom: 16px;
+    font-family: var(--display);
+    font-weight:600;
+    font-size: 15px;
+  }
+  .status-dot{ width:8px; height:8px; border-radius:50%; background: var(--accent); box-shadow: 0 0 0 4px rgba(95,208,104,0.15); }
+  .status-dot.err{ background: var(--red); box-shadow: 0 0 0 4px rgba(244,113,116,0.15); }
+
+  .diff-card{
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--panel);
+  }
+  .diff-head{
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel-2);
+    font-size: 12.5px;
+    color: var(--text-dim);
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .copy-btn{
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11.5px;
+    padding: 5px 11px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .copy-btn:hover{ color: var(--text); border-color: var(--text-dim); }
+
+  pre#fixed-code{
+    margin:0;
+    padding: 20px;
+    font-size: 13.5px;
+    line-height: 1.65;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  pre#fixed-code .add{ background: rgba(95,208,104,0.1); display:block; border-left: 2px solid var(--accent); margin-left:-20px; padding-left:18px; }
+  pre#fixed-code .rem{ background: rgba(244,113,116,0.08); display:block; border-left: 2px solid var(--red); margin-left:-20px; padding-left:18px; color:#e89a9b; text-decoration: line-through; opacity:0.7; }
+
+  .explain-card{
+    margin-top: 18px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 20px 22px;
+  }
+  .explain-card h3{
+    font-family: var(--display);
+    font-size: 13px;
+    letter-spacing:0.05em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+  .explain-card .body-text{
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+  .explain-card .body-text strong{ color: var(--amber); }
+  .explain-card .body-text code{
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12.5px;
+  }
+
+  .error-box{
+    border: 1px solid rgba(244,113,116,0.35);
+    background: rgba(244,113,116,0.07);
+    border-radius: 10px;
+    padding: 16px 18px;
+    font-size: 13.5px;
+    color: #f0a4a5;
+    line-height: 1.6;
+  }
+
+  /* ---------- HOW IT WORKS ---------- */
+  .how{
+    margin-top: 64px;
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .how-item{
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    background: var(--panel);
+  }
+  .how-item .n{
+    font-family: var(--display);
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+  }
+  .how-item h4{
+    font-family: var(--display);
+    font-size: 15px;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .how-item p{
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  footer{
+    margin-top: 56px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 12px;
+    display:flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  @media (max-width: 700px){
+    .how{ grid-template-columns: 1fr; }
+    .line-gutter{ width: 36px; min-width: 36px; font-size: 12.5px; padding-right: 6px; }
+    textarea#code-input{ font-size: 12.5px; padding: 16px; }
+    pre#highlight-layer{ font-size: 12.5px; padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="dot-cluster"><span class="dot r"></span><span class="dot a"></span><span class="dot g"></span></div>
+      cppfix<span style="color:var(--text-dim); font-weight:400;">.ai</span>
+    </div>
+    <div class="badge-free">100% MIỄN PHÍ</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="eyebrow">debug.cpp</div>
+    <h1>Dán code C++ bị lỗi vào.<br>Nhận code đã sửa ra.<span class="cursor"></span></h1>
+    <p class="sub">Không cần đăng ký, không cần trả tiền. <b>AI</b> đọc code C++ của bạn, tìm lỗi cú pháp lẫn lỗi logic, rồi trả lại bản đã sửa kèm giải thích bằng tiếng Việt — dễ hiểu cho cả người mới học.</p>
+  </div>
+
+  <div class="env-banner" id="env-banner"></div>
+
+  <div class="settings-card" id="settings-card">
+    <div class="settings-head" id="settings-head">
+      <div class="settings-head-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v6m0 10v6m9-9h-6M9 12H3m13.36-6.36l-4.24 4.24m-4.24 4.24l-4.24 4.24m12.72 0l-4.24-4.24M7.64 7.64L3.4 3.4"/></svg>
+        <span class="settings-title">Kết nối AI miễn phí (OpenRouter)</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="key-status" id="key-status">Chưa có API key</span>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row">
+        <input type="password" id="api-key-input" placeholder="Dán OpenRouter API key của bạn vào đây (sk-or-v1-...)">
+        <select id="model-select">
+          <option value="deepseek/deepseek-chat-v3.1:free">deepseek/deepseek-chat-v3.1:free ⭐</option>
+          <option value="qwen/qwen3-coder:free">qwen/qwen3-coder:free</option>
+          <option value="meta-llama/llama-3.3-70b-instruct:free">meta-llama/llama-3.3-70b-instruct:free</option>
+          <option value="openrouter/free">openrouter/auto-free (không ổn định)</option>
+        </select>
+        <button class="save-key-btn" id="save-key-btn">Lưu key</button>
+      </div>
+      <div class="remember-row">
+        <input type="checkbox" id="remember-key" checked>
+        <label for="remember-key">Nhớ key này trên máy này (lưu trong trình duyệt, không gửi đi đâu khác)</label>
+      </div>
+      <div class="settings-note">
+        Trang này gọi trực tiếp tới API miễn phí của OpenRouter từ trình duyệt của bạn — không qua server trung gian nào của mình.
+        Lấy API key miễn phí (không cần thẻ tín dụng) tại <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>.
+        Model free không tốn credit; nếu chưa nạp credit, giới hạn ~50 lượt/ngày — nạp tối thiểu $10 (không hết hạn) để tăng lên 1000 lượt/ngày.
+        Key chỉ lưu trên máy bạn, không gửi cho mình.
+      </div>
+    </div>
+  </div>
+
+  <div class="editor-card">
+    <div class="editor-tabs">
+      <div class="tab active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
+        main.cpp
+      </div>
+    </div>
+    <div class="editor-body">
+      <div class="line-gutter" id="line-gutter">1</div>
+      <div class="code-area">
+        <pre id="highlight-layer"><code id="highlight-code"></code></pre>
+        <textarea id="code-input" spellcheck="false" placeholder="#include &lt;iostream&gt;
+using namespace std;
+
+int main() {
+    int arr[5];
+    for (int i = 0; i &lt;= 5; i++) {
+        arr[i] = i * 2;
+    }
+    cout &lt;&lt; arr[5] &lt;&lt; endl;
+    return 0
+}"></textarea>
+      </div>
+    </div>
+    <div class="editor-footer">
+      <div class="hint-text">Dán toàn bộ file hoặc đoạn code · <kbd>Ctrl</kbd> + <kbd>Enter</kbd> để sửa nhanh</div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="run-btn" id="run-btn">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          Chạy thử
+        </button>
+        <button class="fix-btn" id="fix-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          Sửa lỗi với AI
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="console-card" id="console-card">
+    <div class="console-head">
+      <span>Console output</span>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button class="stdin-toggle" id="stdin-toggle">+ stdin</button>
+        <button class="copy-btn" id="clear-console-btn">Xoá</button>
+      </div>
+    </div>
+    <div class="stdin-row" id="stdin-row" style="display:none;">
+      <label for="stdin-input">Dữ liệu nhập (mỗi giá trị cách nhau bằng dấu cách hoặc xuống dòng, dùng khi code có <code>cin</code>):</label>
+      <textarea id="stdin-input" placeholder="Ví dụ: 5 10&#10;hoặc mỗi dòng một giá trị"></textarea>
+    </div>
+    <pre id="console-output"><span class="console-placeholder">Bấm "Chạy thử" để xem kết quả chạy code ở đây...</span></pre>
+  </div>
+
+  <div class="result" id="result">
+    <div class="result-status" id="result-status">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">Đã sửa xong</span>
+    </div>
+
+    <div id="success-view">
+      <div class="diff-card">
+        <div class="diff-head">
+          <span>main.cpp — bản đã sửa</span>
+          <button class="copy-btn" id="copy-btn">Sao chép</button>
+        </div>
+        <pre id="fixed-code"></pre>
+      </div>
+
+      <div class="explain-card">
+        <h3>AI giải thích</h3>
+        <div class="body-text" id="explain-text"></div>
+      </div>
+    </div>
+
+    <div id="error-view" style="display:none;">
+      <div class="error-box" id="error-text"></div>
+    </div>
+  </div>
+
+  <div class="how">
+    <div class="how-item">
+      <div class="n">01 — DÁN CODE</div>
+      <h4>Dán code C++</h4>
+      <p>Một file, một hàm, hoặc chỉ một đoạn lỗi compile — đều được. Có highlight cú pháp ngay khi gõ.</p>
+    </div>
+    <div class="how-item">
+      <div class="n">02 — CHẠY THỬ</div>
+      <h4>Xem code chạy ra gì</h4>
+      <p>Chạy ngay trong trình duyệt bằng trình thông dịch C++ nhẹ — phù hợp với code học tập cơ bản, không cần cài g++.</p>
+    </div>
+    <div class="how-item">
+      <div class="n">03 — SỬA VỚI AI</div>
+      <h4>AI tìm và sửa lỗi</h4>
+      <p>Phát hiện lỗi cú pháp, lỗi logic, lỗi tràn bộ nhớ, lỗi con trỏ phổ biến, kèm giải thích tiếng Việt.</p>
+    </div>
+  </div>
+
+  <footer>
+    <span>cppfix.ai — chạy bằng OpenRouter (model miễn phí)</span>
+    <span>Key & code chỉ lưu trên máy bạn, không qua server nào của trang này</span>
+  </footer>
+
+</div>
+
+<script>
+const codeInput = document.getElementById('code-input');
+const highlightCode = document.getElementById('highlight-code');
+const highlightLayer = document.getElementById('highlight-layer');
+const fixBtn = document.getElementById('fix-btn');
+const runBtn = document.getElementById('run-btn');
+const consoleOutput = document.getElementById('console-output');
+const stdinToggle = document.getElementById('stdin-toggle');
+const stdinRow = document.getElementById('stdin-row');
+const stdinInput = document.getElementById('stdin-input');
+const clearConsoleBtn = document.getElementById('clear-console-btn');
+const result = document.getElementById('result');
+const fixedCodeEl = document.getElementById('fixed-code');
+const explainText = document.getElementById('explain-text');
+const successView = document.getElementById('success-view');
+const errorView = document.getElementById('error-view');
+const errorText = document.getElementById('error-text');
+const statusDot = document.getElementById('status-dot');
+const statusText = document.getElementById('status-text');
+const copyBtn = document.getElementById('copy-btn');
+
+
+const settingsCard = document.getElementById('settings-card');
+const settingsHead = document.getElementById('settings-head');
+const apiKeyInput = document.getElementById('api-key-input');
+const modelSelect = document.getElementById('model-select');
+const saveKeyBtn = document.getElementById('save-key-btn');
+const keyStatus = document.getElementById('key-status');
+const rememberKey = document.getElementById('remember-key');
+
+const STORAGE_KEY = 'cppfix_openrouter_api_key';
+const STORAGE_MODEL = 'cppfix_openrouter_model';
+
+/* ---- Auto-detect environment issues ---- */
+(function(){
+  const banner = document.getElementById('env-banner');
+  const isPreview = /claude\.ai|anthropic\.com/.test(location.hostname) || location.href.includes('claude');
+  const isFileProtocol = location.protocol === 'file:';
+
+  if(isPreview){
+    banner.innerHTML = `<strong>⚠ Bạn đang xem trong khung preview của Claude.</strong><br>
+Tính năng gọi AI (Sửa lỗi + Chạy thử) không hoạt động ở đây vì iframe chặn request ra ngoài.<br>
+→ <strong>Tải file về máy</strong>, rồi <strong>double-click mở bằng Chrome / Edge / Firefox</strong> là dùng được ngay.`;
+    banner.classList.add('show');
+    return;
+  }
+
+  if(isFileProtocol && !localStorage.getItem('cppfix_openrouter_api_key')){
+    banner.innerHTML = `<strong>⚠ Chưa có API key.</strong> File đã mở đúng cách nhưng key chưa được lưu — có thể do bạn vừa tải file mới về.<br>
+→ Bung mục <strong>"Kết nối AI miễn phí"</strong> bên dưới, dán lại key từ <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a> rồi bấm <strong>Lưu key</strong>.`;
+    banner.classList.add('show');
+  }
+})();
+
+function loadSavedKey(){
+  const savedKey = localStorage.getItem(STORAGE_KEY);
+  const savedModel = localStorage.getItem(STORAGE_MODEL);
+  if(savedKey){
+    apiKeyInput.value = savedKey;
+    keyStatus.textContent = 'Đã kết nối';
+    keyStatus.classList.add('ok');
+  }
+  if(savedModel){ modelSelect.value = savedModel; }
+}
+loadSavedKey();
+
+settingsHead.addEventListener('click', () => {
+  settingsCard.classList.toggle('open');
+});
+// Mở sẵn nếu chưa có key
+if(!localStorage.getItem(STORAGE_KEY)){ settingsCard.classList.add('open'); }
+
+saveKeyBtn.addEventListener('click', () => {
+  const key = getApiKey();
+  apiKeyInput.value = key;
+  if(!key){
+    keyStatus.textContent = 'Chưa có API key';
+    keyStatus.classList.remove('ok');
+    return;
+  }
+  if(rememberKey.checked){
+    localStorage.setItem(STORAGE_KEY, key);
+    localStorage.setItem(STORAGE_MODEL, modelSelect.value);
+  } else {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+  keyStatus.textContent = 'Đã kết nối';
+  keyStatus.classList.add('ok');
+  settingsCard.classList.remove('open');
+});
+
+function getApiKey(){
+  let key = apiKeyInput.value.trim();
+  // Bỏ khoảng trắng/newline ẩn và tiền tố "Bearer " nếu người dùng lỡ dán kèm
+  key = key.replace(/[\r\n\t]/g, '').trim();
+  key = key.replace(/^bearer\s+/i, '').trim();
+  return key;
+}
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+const lineGutter = document.getElementById('line-gutter');
+
+function updateHighlight(){
+  const code = codeInput.value || '';
+  const lines = code.split('\n');
+  // Cập nhật số dòng trong gutter
+  lineGutter.textContent = lines.map((_,i) => i + 1).join('\n');
+  // Highlight code (không có .ln nữa)
+  const hl = window.__CPP_HL
+    ? window.__CPP_HL.highlight(code)
+    : code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  highlightCode.innerHTML = hl + '\n';
+}
+
+function syncScroll(){
+  // highlight layer sync cả hai chiều
+  highlightLayer.scrollTop  = codeInput.scrollTop;
+  highlightLayer.scrollLeft = codeInput.scrollLeft;
+  // gutter chỉ sync dọc
+  lineGutter.scrollTop = codeInput.scrollTop;
+}
+
+codeInput.addEventListener('input', updateHighlight);
+codeInput.addEventListener('scroll', syncScroll);
+if(window.ResizeObserver){
+  new ResizeObserver(syncScroll).observe(codeInput);
+}
+updateHighlight();
+
+codeInput.addEventListener('keydown', (e) => {
+  if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ fixCode(); }
+});
+
+function highlightLine(text){
+  return window.__CPP_HL
+    ? window.__CPP_HL.highlight(text)
+    : escapeHtml(text);
+}
+
+function renderDiff(diffMarkup){
+  const lines = diffMarkup.split('\n');
+  let html = '';
+  for(const line of lines){
+    if(line.startsWith('+++') || line.startsWith('---')) continue;
+    if(line.startsWith('+')){
+      html += `<span class="add">${highlightLine(line.slice(1))}</span>\n`;
+    } else if(line.startsWith('-')){
+      html += `<span class="rem">${escapeHtml(line.slice(1))}</span>\n`;
+    } else {
+      const content = line.startsWith(' ') ? line.slice(1) : line;
+      html += `${highlightLine(content)}\n`;
+    }
+  }
+  return html;
+}
+
+/* ---------- CHẠY THỬ CODE (AI simulate execution) ---------- */
+function appendConsole(text, cls){
+  const placeholder = consoleOutput.querySelector('.console-placeholder');
+  if(placeholder) placeholder.remove();
+  if(cls){
+    const span = document.createElement('span');
+    span.className = cls;
+    span.textContent = text;
+    consoleOutput.appendChild(span);
+  } else {
+    consoleOutput.appendChild(document.createTextNode(text));
+  }
+}
+
+function clearConsole(){
+  consoleOutput.innerHTML = '<span class="console-placeholder">Bấm "Chạy thử" để xem kết quả chạy code ở đây...</span>';
+}
+
+const RUN_SYSTEM_PROMPT = `Bạn là một trình thông dịch C++ chính xác. Người dùng gửi code C++ và (nếu có) dữ liệu stdin.
+
+Nhiệm vụ của bạn: **thực thi code C++ đó trong đầu, một cách chính xác như g++ sẽ chạy**, rồi trả lời CHỈ bằng JSON hợp lệ, không có markdown, không có \`\`\`, theo đúng định dạng:
+
+{
+  "stdout": "toàn bộ nội dung in ra stdout, giữ nguyên dấu xuống dòng",
+  "exit_code": 0,
+  "runtime_error": "" 
+}
+
+- Nếu code chạy thành công: stdout là output thật, exit_code là 0 (hoặc giá trị return của main), runtime_error là chuỗi rỗng.
+- Nếu code có lỗi runtime (ví dụ: chia cho 0, tràn mảng, con trỏ null): stdout là phần đã in trước khi lỗi, exit_code là 1, runtime_error là mô tả lỗi bằng tiếng Việt ngắn gọn.
+- Nếu code không compile được: stdout là "", exit_code là 1, runtime_error là mô tả lỗi compile ngắn gọn bằng tiếng Việt.
+- Không thêm giải thích, chỉ trả về JSON.`;
+
+async function runCode(){
+  const code = codeInput.value.trim();
+  if(!code){ codeInput.focus(); return; }
+
+  const apiKey = getApiKey();
+  if(!apiKey){
+    clearConsole();
+    appendConsole('Tính năng "Chạy thử" dùng AI để giả lập thực thi code — cần điền OpenRouter API key ở phần "Kết nối AI miễn phí" phía trên trước.', 'runtime-err');
+    settingsCard.classList.add('open');
+    settingsCard.scrollIntoView({ behavior:'smooth', block:'center' });
+    return;
+  }
+
+  consoleOutput.innerHTML = '';
+  appendConsole('$ g++ -simulate (AI) → chạy chương trình...\n\n');
+  runBtn.disabled = true;
+  runBtn.innerHTML = `<span class="spinner" style="border-top-color:var(--blue);border-color:rgba(122,209,255,0.2);"></span> Đang chạy...`;
+
+  const stdin = stdinInput.value.trim();
+  const userMsg = stdin
+    ? `Code C++:\n\`\`\`cpp\n${code}\n\`\`\`\n\nDữ liệu stdin:\n${stdin}`
+    : `Code C++:\n\`\`\`cpp\n${code}\n\`\`\`\n\n(Không có stdin)`;
+
+  try{
+    const model = modelSelect.value || 'deepseek/deepseek-chat-v3.1:free';
+    const messages = [
+      { role: 'system', content: RUN_SYSTEM_PROMPT },
+      { role: 'user', content: userMsg }
+    ];
+    const raw = await callWithFallback(apiKey, model, messages);
+    const cleaned = raw.replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+    const parsed = JSON.parse(cleaned);
+
+    if(parsed.stdout) appendConsole(parsed.stdout);
+    if(parsed.runtime_error){
+      appendConsole(`\nLỗi runtime: ${parsed.runtime_error}`, 'runtime-err');
+    }
+    const exitOk = (parsed.exit_code === 0 || parsed.exit_code === '0') && !parsed.runtime_error;
+    appendConsole(`\n[Tiến trình kết thúc với mã: ${parsed.exit_code ?? 0}]`, exitOk ? 'exit-ok' : 'exit-err');
+
+  }catch(err){
+    appendConsole('\nKhông thể giả lập: ' + (err?.message || err), 'runtime-err');
+  }finally{
+    runBtn.disabled = false;
+    runBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Chạy thử`;
+  }
+}
+
+runBtn.addEventListener('click', runCode);
+clearConsoleBtn.addEventListener('click', clearConsole);
+stdinToggle.addEventListener('click', () => {
+  const isOpen = stdinRow.style.display !== 'none';
+  stdinRow.style.display = isOpen ? 'none' : 'block';
+  stdinToggle.textContent = isOpen ? '+ stdin' : '− stdin';
+});
+
+const SYSTEM_PROMPT = `Bạn là một trợ lý sửa lỗi code C++ chuyên nghiệp. Người dùng sẽ gửi một đoạn code C++ có thể bị lỗi (lỗi cú pháp, lỗi compile, hoặc lỗi logic runtime).
+
+Nhiệm vụ của bạn:
+1. Tìm và sửa tất cả lỗi trong code.
+2. Trả lời CHỈ bằng một đối tượng JSON hợp lệ, không có markdown, không có \`\`\`, không có lời mở đầu, theo đúng định dạng sau:
+
+{
+  "has_errors": true hoặc false,
+  "diff": "code đầy đủ đã sửa, dùng tiền tố '+' cho dòng được thêm/sửa, '-' cho dòng bị xoá, ' ' (khoảng trắng) cho dòng giữ nguyên. Mỗi dòng cách nhau bằng \\n. Đây phải là code hoàn chỉnh có thể compile được khi bỏ các dòng '-'.",
+  "explanation": "giải thích ngắn gọn, RÕ RÀNG, bằng TIẾNG VIỆT, dùng ngôn ngữ dễ hiểu cho người mới học, liệt kê từng lỗi đã tìm thấy và cách đã sửa. Dùng định dạng như: '**Lỗi 1:** ... \\n**Lỗi 2:** ...' nếu có nhiều lỗi."
+}
+
+Nếu code không có lỗi gì, has_errors = false, diff là code giữ nguyên (toàn bộ dòng tiền tố ' '), và explanation nói rằng code đã đúng, không cần sửa.
+
+Không thêm bất kỳ văn bản nào ngoài JSON.`;
+
+const FALLBACK_MODELS = [
+  'deepseek/deepseek-chat-v3.1:free',
+  'qwen/qwen3-coder:free',
+  'meta-llama/llama-3.3-70b-instruct:free',
+];
+
+async function callOpenRouter(apiKey, model, messages){
+  const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0.2,
+      messages
+    })
+  });
+
+  if(!resp.ok){
+    const errBody = await resp.json().catch(() => null);
+    const msg = errBody?.error?.message || `Lỗi ${resp.status}`;
+    throw new Error(msg);
+  }
+
+  const data = await resp.json();
+  // Một số model trả về error trong body dù status 200
+  if(data.error){ throw new Error(data.error.message || 'Provider returned error'); }
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if(!text) throw new Error('Model không trả về nội dung.');
+  return text;
+}
+
+async function callWithFallback(apiKey, primaryModel, messages){
+  try {
+    return await callOpenRouter(apiKey, primaryModel, messages);
+  } catch(err) {
+    const msg = err?.message || '';
+    const isProviderErr = /provider|unavailable|overloaded|500|503|error/i.test(msg);
+    if(!isProviderErr) throw err;
+    // Thử lần lượt model dự phòng
+    const fallbacks = FALLBACK_MODELS.filter(m => m !== primaryModel);
+    let lastErr = err;
+    for(const fb of fallbacks){
+      try {
+        const result = await callOpenRouter(apiKey, fb, messages);
+        modelSelect.value = fb;
+        localStorage.setItem(STORAGE_MODEL, fb);
+        return result;
+      } catch(e){ lastErr = e; }
+    }
+    throw lastErr;
+  }
+}
+
+async function fixCode(){
+  const code = codeInput.value.trim();
+  const apiKey = getApiKey();
+
+  if(!apiKey){
+    settingsCard.classList.add('open');
+    settingsCard.scrollIntoView({ behavior:'smooth', block:'center' });
+    apiKeyInput.focus();
+    return;
+  }
+
+  if(!code){
+    codeInput.focus();
+    codeInput.style.boxShadow = 'inset 0 0 0 1px var(--red)';
+    setTimeout(()=>{ codeInput.style.boxShadow = 'none'; }, 600);
+    return;
+  }
+
+  fixBtn.disabled = true;
+  fixBtn.innerHTML = `<span class="spinner"></span> Đang phân tích...`;
+  result.classList.remove('show');
+
+  try{
+    const model = modelSelect.value || 'deepseek/deepseek-chat-v3.1:free';
+    const messages = [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: `Đây là code C++ cần kiểm tra và sửa lỗi:\n\n${code}` }
+    ];
+    const rawText = await callWithFallback(apiKey, model, messages);
+    const cleaned = rawText.replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+
+    let parsed;
+    try{
+      parsed = JSON.parse(cleaned);
+    }catch(parseErr){
+      throw new Error('Không đọc được phản hồi từ AI. Vui lòng thử lại.');
+    }
+
+    successView.style.display = 'block';
+    errorView.style.display = 'none';
+
+    if(parsed.has_errors){
+      statusDot.className = 'status-dot';
+      statusText.textContent = 'Đã tìm thấy lỗi và sửa xong';
+    } else {
+      statusDot.className = 'status-dot';
+      statusText.textContent = 'Không tìm thấy lỗi — code của bạn đã đúng';
+    }
+
+    fixedCodeEl.innerHTML = renderDiff(parsed.diff || code);
+
+    let explainHtml = escapeHtml(parsed.explanation || '')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/`(.+?)`/g, '<code>$1</code>');
+    explainText.innerHTML = explainHtml;
+
+  }catch(err){
+    successView.style.display = 'none';
+    errorView.style.display = 'block';
+    statusDot.className = 'status-dot err';
+    statusText.textContent = 'Có lỗi xảy ra';
+    let msg = (err && err.message) ? err.message : 'Không thể kết nối tới OpenRouter lúc này. Vui lòng thử lại sau.';
+    if(/No auth credentials|invalid.*api.*key|Missing Authentication|401/i.test(msg)){
+      msg = 'API key không hợp lệ hoặc bị sai định dạng. Hãy xoá trắng ô key, dán lại key gốc từ openrouter.ai/keys (không kèm chữ "Bearer", không có khoảng trắng/dòng trống thừa), rồi bấm "Lưu key" lại.';
+    } else if(/rate.?limit|429/i.test(msg)){
+      msg = 'Đã chạm giới hạn lượt gọi miễn phí trong ngày. Hãy thử lại sau, hoặc đổi sang model free khác trong phần Kết nối AI.';
+    }
+    errorText.textContent = msg;
+  } finally{
+    fixBtn.disabled = false;
+    fixBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Sửa lỗi với AI`;
+    result.classList.add('show');
+    result.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+}
+
+fixBtn.addEventListener('click', fixCode);
+
+copyBtn.addEventListener('click', () => {
+  const text = fixedCodeEl.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const old = copyBtn.textContent;
+    copyBtn.textContent = 'Đã chép!';
+    setTimeout(()=>{ copyBtn.textContent = old; }, 1500);
+  });
+});
+</script>
+
+</body>
+</html>
