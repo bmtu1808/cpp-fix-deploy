@@ -805,6 +805,84 @@ window.__CPP_HL = {
   .issue-summary span{ display:flex; align-items:center; gap: 5px; }
   .issue-summary .sev-dot{ width: 7px; height: 7px; border-radius: 50%; display:inline-block; }
 
+  /* ---------- OPTIMIZE CALLOUT ---------- */
+  .optimize-callout{
+    display: none;
+    margin-top: 18px;
+    border: 1px solid rgba(122,209,255,0.3);
+    background: rgba(122,209,255,0.05);
+    border-radius: 10px;
+    padding: 18px 20px;
+    animation: riseIn 0.4s ease both;
+  }
+  .optimize-callout.show{ display: flex; flex-direction: column; gap: 14px; }
+  .optimize-text{
+    font-size: 13.5px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+  .optimize-text strong{
+    display: block;
+    color: var(--blue);
+    font-family: var(--display);
+    font-size: 14.5px;
+    margin-bottom: 2px;
+  }
+  .optimize-points{
+    list-style: none;
+    margin: 8px 0;
+    padding: 0;
+  }
+  .optimize-points li{
+    position: relative;
+    padding-left: 18px;
+    margin: 4px 0;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  .optimize-points li::before{
+    content: "•";
+    position: absolute;
+    left: 4px;
+    color: var(--blue);
+  }
+  .optimize-points li code{
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .optimize-actions{ display:flex; gap: 10px; flex-wrap: wrap; }
+  .optimize-btn{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 13.5px;
+    color: #0c1822;
+    background: var(--blue);
+    border: none;
+    padding: 10px 18px;
+    border-radius: 7px;
+    cursor: pointer;
+    display:flex; align-items:center; gap:8px;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  .optimize-btn:hover{ transform: translateY(-1px); box-shadow: 0 8px 20px -10px rgba(122,209,255,0.5); }
+  .optimize-btn:disabled{ background:#3a4047; color:#737982; cursor:not-allowed; transform:none; box-shadow:none; }
+  .optimize-btn svg{ width: 14px; height: 14px; }
+  .optimize-skip-btn{
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--text-dim);
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 10px 16px;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .optimize-skip-btn:hover{ color: var(--text); border-color: var(--text-dim); }
+
   .error-box{
     border: 1px solid rgba(244,113,116,0.35);
     background: rgba(244,113,116,0.07);
@@ -1025,6 +1103,22 @@ int main() {
         <div class="issue-summary" id="issue-summary"></div>
         <div class="issue-list" id="issue-list"></div>
       </div>
+
+      <div class="optimize-callout" id="optimize-callout">
+        <div class="optimize-text">
+          <strong id="optimize-headline">Đã sửa logic.</strong>
+          <span>Tuy nhiên mình còn phát hiện:</span>
+          <ul class="optimize-points" id="optimize-points"></ul>
+          <span>Bạn có muốn mình tối ưu luôn không?</span>
+        </div>
+        <div class="optimize-actions">
+          <button class="optimize-btn" id="optimize-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+            Tối ưu code
+          </button>
+          <button class="optimize-skip-btn" id="optimize-skip-btn">Để sau</button>
+        </div>
+      </div>
     </div>
 
     <div id="error-view" style="display:none;">
@@ -1117,6 +1211,13 @@ const fixedCodeEl = document.getElementById('fixed-code');
 const explainText = document.getElementById('explain-text');
 const issueList = document.getElementById('issue-list');
 const issueSummary = document.getElementById('issue-summary');
+const optimizeCallout = document.getElementById('optimize-callout');
+const optimizeHeadline = document.getElementById('optimize-headline');
+const optimizePoints = document.getElementById('optimize-points');
+const optimizeBtn = document.getElementById('optimize-btn');
+const optimizeSkipBtn = document.getElementById('optimize-skip-btn');
+let lastOriginalCode = '';
+let lastIssues = [];
 const successView = document.getElementById('success-view');
 const errorView = document.getElementById('error-view');
 const errorText = document.getElementById('error-text');
@@ -1307,6 +1408,90 @@ function renderIssues(issues){
     issueList.appendChild(div);
   });
 }
+
+/* ---------- GỢI Ý TỐI ƯU (warning + suggestion) ---------- */
+function showOptimizeCallout(hadCriticalOrLogic, issues){
+  const improvable = issues.filter(it => it.severity === 'warning' || it.severity === 'suggestion');
+  if(improvable.length === 0){
+    optimizeCallout.classList.remove('show');
+    return;
+  }
+
+  optimizeHeadline.textContent = hadCriticalOrLogic
+    ? 'Đã sửa logic.'
+    : 'Code của bạn chạy đúng.';
+
+  optimizePoints.innerHTML = improvable
+    .slice(0, 5)
+    .map(it => `<li>${escapeHtml(it.title || it.description || '')}</li>`)
+    .join('');
+
+  optimizeBtn.disabled = false;
+  optimizeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg> Tối ưu code`;
+  optimizeCallout.classList.add('show');
+}
+
+optimizeSkipBtn.addEventListener('click', () => {
+  optimizeCallout.classList.remove('show');
+});
+
+const OPTIMIZE_SYSTEM_PROMPT = `Bạn là một trợ lý tối ưu code C++ chuyên nghiệp. Người dùng đã có code C++ CHẠY ĐÚNG (không còn lỗi logic/compile), nhưng muốn áp dụng thêm các cải thiện về chất lượng code (warning/suggestion) đã được liệt kê.
+
+Nhiệm vụ: áp dụng TẤT CẢ các điểm cải thiện được liệt kê vào code, đảm bảo code vẫn chạy đúng y hệt logic cũ (không được thay đổi hành vi chương trình).
+
+Trả lời CHỈ bằng JSON hợp lệ, không markdown, không \`\`\`, theo đúng định dạng:
+{
+  "fixed_code": "TOÀN BỘ code C++ sau khi đã tối ưu, dạng văn bản thuần, đầy đủ, biên dịch được. Mỗi dòng cách nhau bằng \\n.",
+  "explanation": "tóm tắt ngắn gọn bằng tiếng Việt những gì đã tối ưu."
+}
+
+Không thêm bất kỳ văn bản nào ngoài JSON.`;
+
+async function optimizeCode(){
+  const apiKey = getApiKey();
+  if(!apiKey || !lastFixedCode) return;
+
+  optimizeBtn.disabled = true;
+  optimizeBtn.innerHTML = `<span class="spinner"></span> Đang tối ưu...`;
+
+  try{
+    const pointsText = lastIssues
+      .filter(it => it.severity === 'warning' || it.severity === 'suggestion')
+      .map(it => `- [${it.severity}] ${it.title}: ${it.description}`)
+      .join('\n');
+
+    const messages = [
+      { role: 'system', content: OPTIMIZE_SYSTEM_PROMPT },
+      { role: 'user', content: `Code hiện tại (đã chạy đúng):\n\`\`\`cpp\n${lastFixedCode}\n\`\`\`\n\nCác điểm cần tối ưu:\n${pointsText}` }
+    ];
+    const model = modelSelect.value || 'openai/gpt-oss-120b:free';
+    const rawText = await callWithFallback(apiKey, model, messages);
+    const cleaned = rawText.replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+    const parsed = JSON.parse(cleaned);
+
+    const newCode = parsed.fixed_code || lastFixedCode;
+    fixedCodeEl.innerHTML = renderDiff(lastFixedCode, newCode);
+    lastFixedCode = newCode;
+
+    let explainHtml = escapeHtml(parsed.explanation || 'Đã áp dụng các tối ưu được đề xuất.')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/`(.+?)`/g, '<code>$1</code>');
+    explainText.innerHTML = `<strong style="color:var(--blue)">✓ Đã tối ưu:</strong> ` + explainHtml;
+
+    // Tối ưu xong thì ẩn callout và issue-list cũ (đã không còn chính xác)
+    optimizeCallout.classList.remove('show');
+    issueList.innerHTML = '';
+    issueSummary.innerHTML = '';
+    statusText.textContent = 'Đã tối ưu code thành công';
+
+  }catch(err){
+    optimizeBtn.disabled = false;
+    optimizeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg> Tối ưu code`;
+    alert('Không thể tối ưu lúc này: ' + (err?.message || err));
+  }
+}
+
+optimizeBtn.addEventListener('click', optimizeCode);
 
 /* ---------- TỰ TÍNH DIFF (LCS) — không phụ thuộc AI định dạng ---------- */
 function computeLineDiff(oldText, newText){
@@ -1548,6 +1733,7 @@ async function fixCode(){
   fixBtn.disabled = true;
   fixBtn.innerHTML = `<span class="spinner"></span> Đang phân tích...`;
   result.classList.remove('show');
+  optimizeCallout.classList.remove('show');
   startThinking();
 
   try{
@@ -1583,7 +1769,12 @@ async function fixCode(){
 
     fixedCodeEl.innerHTML = renderDiff(code, parsed.fixed_code || code);
     lastFixedCode = parsed.fixed_code || code;
+    lastOriginalCode = code;
+    lastIssues = issues;
     renderIssues(issues);
+
+    const hasCriticalOrLogic = issues.some(it => it.severity === 'critical' || it.severity === 'logic');
+    showOptimizeCallout(hasCriticalOrLogic, issues);
 
     let explainHtml = escapeHtml(parsed.explanation || '')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
