@@ -883,6 +883,95 @@ window.__CPP_HL = {
   }
   .optimize-skip-btn:hover{ color: var(--text); border-color: var(--text-dim); }
 
+  /* ---------- COMPLEXITY COMPARISON ---------- */
+  .complexity-card{
+    display: none;
+    margin-top: 18px;
+    border: 1px solid rgba(255,180,84,0.3);
+    background: rgba(255,180,84,0.05);
+    border-radius: 10px;
+    padding: 16px 20px;
+    animation: riseIn 0.4s ease both;
+  }
+  .complexity-card.show{ display: block; }
+  .complexity-card .cc-label{
+    font-family: var(--display);
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 10px;
+  }
+  .complexity-row{
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .complexity-box{
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+  }
+  .complexity-box .cc-tag{ font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+  .complexity-box .cc-value{ font-family: var(--display); font-weight: 700; font-size: 18px; }
+  .complexity-box.before .cc-value{ color: #f0a4a5; }
+  .complexity-box.after .cc-value{ color: var(--accent); }
+  .complexity-arrow{
+    width: 28px; height: 28px;
+    display: flex; align-items:center; justify-content:center;
+    color: var(--amber);
+    flex-shrink: 0;
+  }
+  .complexity-arrow svg{ width: 22px; height: 22px; }
+  .complexity-note{
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  /* ---------- SCORE CARD ---------- */
+  .score-card{
+    display: none;
+    margin-top: 18px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 18px 20px;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    animation: riseIn 0.4s ease both;
+  }
+  .score-card.show{ display: flex; }
+  .score-ring{
+    position: relative;
+    width: 64px; height: 64px;
+    flex-shrink: 0;
+  }
+  .score-ring svg{ width: 100%; height: 100%; transform: rotate(-90deg); }
+  .score-ring circle{ fill: none; stroke-width: 5; }
+  .score-ring .bg{ stroke: var(--border); }
+  .score-ring .fg{ stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 0.8s cubic-bezier(.4,0,.2,1); }
+  .score-ring .score-num{
+    position: absolute; inset: 0;
+    display: flex; align-items:center; justify-content:center;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+  }
+  .score-body{ flex: 1; min-width: 200px; }
+  .score-title{ font-family: var(--display); font-weight:600; font-size: 13.5px; margin-bottom: 4px; }
+  .score-stars{ display:flex; gap: 2px; margin-bottom: 6px; }
+  .score-stars svg{ width: 15px; height: 15px; }
+  .score-reason{ font-size: 12.5px; color: var(--text-dim); line-height: 1.6; }
+
   .error-box{
     border: 1px solid rgba(244,113,116,0.35);
     background: rgba(244,113,116,0.07);
@@ -1104,6 +1193,39 @@ int main() {
         <div class="issue-list" id="issue-list"></div>
       </div>
 
+      <div class="score-card" id="score-card">
+        <div class="score-ring">
+          <svg viewBox="0 0 64 64">
+            <circle class="bg" cx="32" cy="32" r="27"></circle>
+            <circle class="fg" id="score-ring-fg" cx="32" cy="32" r="27" stroke-dasharray="169.6" stroke-dashoffset="169.6"></circle>
+          </svg>
+          <div class="score-num" id="score-num">–</div>
+        </div>
+        <div class="score-body">
+          <div class="score-title">Đánh giá chất lượng code</div>
+          <div class="score-stars" id="score-stars"></div>
+          <div class="score-reason" id="score-reason"></div>
+        </div>
+      </div>
+
+      <div class="complexity-card" id="complexity-card">
+        <div class="cc-label">⚡ Thay đổi độ phức tạp thuật toán</div>
+        <div class="complexity-row">
+          <div class="complexity-box before">
+            <span class="cc-tag">Trước</span>
+            <span class="cc-value" id="complexity-before">—</span>
+          </div>
+          <div class="complexity-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </div>
+          <div class="complexity-box after">
+            <span class="cc-tag">Sau</span>
+            <span class="cc-value" id="complexity-after">—</span>
+          </div>
+        </div>
+        <div class="complexity-note" id="complexity-note"></div>
+      </div>
+
       <div class="optimize-callout" id="optimize-callout">
         <div class="optimize-text">
           <strong id="optimize-headline">Đã sửa logic.</strong>
@@ -1216,6 +1338,15 @@ const optimizeHeadline = document.getElementById('optimize-headline');
 const optimizePoints = document.getElementById('optimize-points');
 const optimizeBtn = document.getElementById('optimize-btn');
 const optimizeSkipBtn = document.getElementById('optimize-skip-btn');
+const scoreCard = document.getElementById('score-card');
+const scoreRingFg = document.getElementById('score-ring-fg');
+const scoreNum = document.getElementById('score-num');
+const scoreStars = document.getElementById('score-stars');
+const scoreReason = document.getElementById('score-reason');
+const complexityCard = document.getElementById('complexity-card');
+const complexityBefore = document.getElementById('complexity-before');
+const complexityAfter = document.getElementById('complexity-after');
+const complexityNote = document.getElementById('complexity-note');
 let lastOriginalCode = '';
 let lastIssues = [];
 const successView = document.getElementById('success-view');
@@ -1409,6 +1540,49 @@ function renderIssues(issues){
   });
 }
 
+/* ---------- SCORE CARD ---------- */
+function renderScore(score, reason){
+  if(score == null){ scoreCard.classList.remove('show'); return; }
+
+  const s = parseFloat(score);
+  const pct = Math.min(Math.max(s / 5, 0), 1);
+  const circ = 2 * Math.PI * 27; // r=27 → 169.6
+  scoreRingFg.style.strokeDashoffset = circ * (1 - pct);
+  // Màu vòng theo điểm
+  const col = s >= 4 ? 'var(--accent)' : s >= 3 ? 'var(--amber)' : 'var(--red)';
+  scoreRingFg.style.stroke = col;
+  scoreNum.textContent = s.toFixed(1);
+
+  // Sao đầy / nửa / rỗng
+  let starsHtml = '';
+  for(let i = 1; i <= 5; i++){
+    const filled = s >= i ? 1 : s >= i - 0.5 ? 0.5 : 0;
+    if(filled === 1){
+      starsHtml += `<svg viewBox="0 0 24 24" fill="${col}" stroke="${col}" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+    } else if(filled === 0.5){
+      starsHtml += `<svg viewBox="0 0 24 24" fill="${col}" stroke="${col}" stroke-width="1.5">
+        <defs><clipPath id="h${i}"><rect x="0" y="0" width="12" height="24"/></clipPath></defs>
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="var(--border)" stroke="var(--border)"/>
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" clip-path="url(#h${i})"/>
+      </svg>`;
+    } else {
+      starsHtml += `<svg viewBox="0 0 24 24" fill="none" stroke="var(--border)" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+    }
+  }
+  scoreStars.innerHTML = starsHtml;
+  scoreReason.textContent = reason || '';
+  scoreCard.classList.add('show');
+}
+
+/* ---------- COMPLEXITY CARD ---------- */
+function renderComplexity(changed, before, after, note){
+  if(!changed){ complexityCard.classList.remove('show'); return; }
+  complexityBefore.textContent = before || '?';
+  complexityAfter.textContent = after || '?';
+  complexityNote.textContent = note || '';
+  complexityCard.classList.add('show');
+}
+
 /* ---------- GỢI Ý TỐI ƯU (warning + suggestion) ---------- */
 function showOptimizeCallout(hadCriticalOrLogic, issues){
   const improvable = issues.filter(it => it.severity === 'warning' || it.severity === 'suggestion');
@@ -1437,12 +1611,21 @@ optimizeSkipBtn.addEventListener('click', () => {
 
 const OPTIMIZE_SYSTEM_PROMPT = `Bạn là một trợ lý tối ưu code C++ chuyên nghiệp. Người dùng đã có code C++ CHẠY ĐÚNG (không còn lỗi logic/compile), nhưng muốn áp dụng thêm các cải thiện về chất lượng code (warning/suggestion) đã được liệt kê.
 
-Nhiệm vụ: áp dụng TẤT CẢ các điểm cải thiện được liệt kê vào code, đảm bảo code vẫn chạy đúng y hệt logic cũ (không được thay đổi hành vi chương trình).
+Nhiệm vụ:
+1. Áp dụng TẤT CẢ các điểm cải thiện được liệt kê vào code, đảm bảo code vẫn chạy đúng y hệt logic cũ (không được thay đổi hành vi chương trình, chỉ được phép cải thiện cách viết/hiệu năng).
+2. So sánh ĐỘ PHỨC TẠP THUẬT TOÁN (Big-O thời gian chạy) giữa code TRƯỚC và SAU khi tối ưu. Nếu việc tối ưu làm thay đổi độ phức tạp (vd O(n²) → O(n log n)), ghi rõ. Nếu không đổi, complexity_changed = false.
+3. Chấm điểm chất lượng code SAU KHI TỐI ƯU theo thang 1-5 (có thể lẻ 0.5).
 
 Trả lời CHỈ bằng JSON hợp lệ, không markdown, không \`\`\`, theo đúng định dạng:
 {
   "fixed_code": "TOÀN BỘ code C++ sau khi đã tối ưu, dạng văn bản thuần, đầy đủ, biên dịch được. Mỗi dòng cách nhau bằng \\n.",
-  "explanation": "tóm tắt ngắn gọn bằng tiếng Việt những gì đã tối ưu."
+  "explanation": "tóm tắt ngắn gọn bằng tiếng Việt những gì đã tối ưu.",
+  "complexity_changed": true hoặc false,
+  "complexity_before": "ví dụ O(n^2), null nếu complexity_changed = false",
+  "complexity_after": "ví dụ O(n), null nếu complexity_changed = false",
+  "complexity_note": "giải thích ngắn 1 câu bằng tiếng Việt, null nếu complexity_changed = false",
+  "score": 4.5,
+  "score_reason": "giải thích ngắn 1 câu bằng tiếng Việt vì sao chấm điểm đó"
 }
 
 Không thêm bất kỳ văn bản nào ngoài JSON.`;
@@ -1478,7 +1661,16 @@ async function optimizeCode(){
       .replace(/`(.+?)`/g, '<code>$1</code>');
     explainText.innerHTML = `<strong style="color:var(--blue)">✓ Đã tối ưu:</strong> ` + explainHtml;
 
-    // Tối ưu xong thì ẩn callout và issue-list cũ (đã không còn chính xác)
+    // Cập nhật điểm và độ phức tạp mới sau tối ưu
+    renderScore(parsed.score ?? null, parsed.score_reason || '');
+    renderComplexity(
+      !!parsed.complexity_changed,
+      parsed.complexity_before,
+      parsed.complexity_after,
+      parsed.complexity_note
+    );
+
+    // Tối ưu xong thì ẩn callout và issue-list cũ
     optimizeCallout.classList.remove('show');
     issueList.innerHTML = '';
     issueSummary.innerHTML = '';
@@ -1639,7 +1831,11 @@ Nhiệm vụ của bạn:
    - "logic": code compile được nhưng chạy SAI kết quả hoặc crash khi chạy (off-by-one, tràn mảng, chia 0, đệ quy vô hạn, con trỏ null, sai công thức/thuật toán...).
    - "warning": code chạy đúng nhưng có rủi ro tiềm ẩn (biến chưa khởi tạo nhưng tình cờ chưa gây lỗi, so sánh kiểu dữ liệu không khớp, rò rỉ bộ nhớ nhẹ, dùng hàm không an toàn...).
    - "suggestion": code đúng và an toàn nhưng có thể viết tốt hơn (đặt tên biến rõ ràng hơn, dùng thư viện chuẩn thay vì tự viết, tối ưu hiệu năng, theo coding convention...).
-3. Trả lời CHỈ bằng một đối tượng JSON hợp lệ, không có markdown, không có \`\`\`, không có lời mở đầu, theo đúng định dạng sau:
+3. So sánh ĐỘ PHỨC TẠP THUẬT TOÁN (Big-O về thời gian chạy) giữa code GỐC và code ĐÃ SỬA:
+   - Nếu cách sửa lỗi vô tình hoặc cố ý làm thay đổi độ phức tạp thuật toán (vd: từ O(n²) xuống O(n log n) hoặc O(n), hoặc ngược lại làm chậm đi), hãy ghi rõ.
+   - Nếu độ phức tạp KHÔNG đổi, để complexity_changed = false.
+4. Chấm điểm chất lượng code SAU KHI ĐÃ SỬA theo thang điểm 1-5 (có thể lẻ tới 0.5), dựa trên: tính đúng đắn, độ rõ ràng/dễ đọc, tối ưu hiệu năng, tuân thủ coding convention C++ hiện đại. 5 điểm = code mẫu mực, 1 điểm = vẫn còn nhiều vấn đề nghiêm trọng.
+5. Trả lời CHỈ bằng một đối tượng JSON hợp lệ, không có markdown, không có \`\`\`, không có lời mở đầu, theo đúng định dạng sau:
 
 {
   "has_errors": true hoặc false,
@@ -1647,10 +1843,16 @@ Nhiệm vụ của bạn:
     { "severity": "critical|logic|warning|suggestion", "title": "tiêu đề ngắn gọn bằng tiếng Việt (dưới 8 từ)", "description": "giải thích ngắn gọn bằng tiếng Việt, dễ hiểu cho người mới học, nói rõ vấn đề và cách đã sửa" }
   ],
   "fixed_code": "TOÀN BỘ code C++ sau khi đã sửa, dạng văn bản thuần (PLAIN TEXT, không có tiền tố '+'/'-' gì cả, không phải định dạng diff). Phải là code đầy đủ, hoàn chỉnh, biên dịch được, đúng định dạng/thụt lề chuẩn. Mỗi dòng cách nhau bằng \\n.",
-  "explanation": "tóm tắt tổng quan ngắn 1-2 câu bằng tiếng Việt về tình trạng chung của code (chi tiết từng lỗi đã có trong issues, không lặp lại ở đây)."
+  "explanation": "tóm tắt tổng quan ngắn 1-2 câu bằng tiếng Việt về tình trạng chung của code (chi tiết từng lỗi đã có trong issues, không lặp lại ở đây).",
+  "complexity_changed": true hoặc false,
+  "complexity_before": "ví dụ O(n^2), null nếu complexity_changed = false",
+  "complexity_after": "ví dụ O(n), null nếu complexity_changed = false",
+  "complexity_note": "giải thích ngắn 1 câu bằng tiếng Việt vì sao độ phức tạp thay đổi, null nếu complexity_changed = false",
+  "score": 4.5,
+  "score_reason": "giải thích ngắn 1 câu bằng tiếng Việt vì sao chấm điểm đó"
 }
 
-Nếu code không có lỗi gì: has_errors = false, issues = [] (mảng rỗng), fixed_code là chính code gốc giữ nguyên không đổi, và explanation nói rằng code đã đúng, không cần sửa.
+Nếu code không có lỗi gì: has_errors = false, issues = [] (mảng rỗng), fixed_code là chính code gốc giữ nguyên không đổi, và explanation nói rằng code đã đúng, không cần sửa. complexity_changed = false. score vẫn chấm bình thường theo chất lượng code hiện tại.
 Nếu code có lỗi: liệt kê TẤT CẢ lỗi tìm thấy vào mảng issues, sắp xếp theo độ nghiêm trọng giảm dần (critical trước, suggestion sau cùng).
 
 Không thêm bất kỳ văn bản nào ngoài JSON.`;
@@ -1734,6 +1936,8 @@ async function fixCode(){
   fixBtn.innerHTML = `<span class="spinner"></span> Đang phân tích...`;
   result.classList.remove('show');
   optimizeCallout.classList.remove('show');
+  scoreCard.classList.remove('show');
+  complexityCard.classList.remove('show');
   startThinking();
 
   try{
@@ -1775,6 +1979,14 @@ async function fixCode(){
 
     const hasCriticalOrLogic = issues.some(it => it.severity === 'critical' || it.severity === 'logic');
     showOptimizeCallout(hasCriticalOrLogic, issues);
+
+    renderScore(parsed.score ?? null, parsed.score_reason || '');
+    renderComplexity(
+      !!parsed.complexity_changed,
+      parsed.complexity_before,
+      parsed.complexity_after,
+      parsed.complexity_note
+    );
 
     let explainHtml = escapeHtml(parsed.explanation || '')
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
