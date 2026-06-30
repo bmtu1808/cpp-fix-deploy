@@ -240,19 +240,40 @@ window.__CPP_HL = {
     margin-top: 14px;
     flex-wrap: wrap;
   }
-  .settings-row input[type="password"], .settings-row input[type="text"]{
+  .key-input-wrap{
+    position: relative;
     flex: 1;
     min-width: 220px;
+    display: flex;
+  }
+  .key-input-wrap input[type="password"], .key-input-wrap input[type="text"]{
+    width: 100%;
     background: var(--panel-2);
     border: 1px solid var(--border);
     color: var(--text);
     font-family: var(--mono);
     font-size: 13px;
-    padding: 10px 12px;
+    padding: 10px 40px 10px 12px;
     border-radius: 7px;
     outline:none;
   }
-  .settings-row input:focus{ border-color: var(--accent-dim); }
+  .key-input-wrap input:focus{ border-color: var(--accent-dim); }
+  .eye-toggle{
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .eye-toggle:hover{ color: var(--text); }
+  .eye-toggle svg{ width: 16px; height: 16px; }
   .settings-row select{
     background: var(--panel-2);
     border: 1px solid var(--border);
@@ -688,12 +709,17 @@ window.__CPP_HL = {
     </div>
     <div class="settings-body">
       <div class="settings-row">
-        <input type="password" id="api-key-input" placeholder="Dán OpenRouter API key của bạn vào đây (sk-or-v1-...)">
+        <div class="key-input-wrap">
+          <input type="password" id="api-key-input" placeholder="Dán OpenRouter API key của bạn vào đây (sk-or-v1-...)">
+          <button type="button" class="eye-toggle" id="eye-toggle" title="Xem/ẩn key">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
         <select id="model-select">
-          <option value="qwen/qwen3-coder:free">qwen/qwen3-coder:free ⭐ (tốt nhất cho code)</option>
-          <option value="meta-llama/llama-3.3-70b-instruct:free">meta-llama/llama-3.3-70b-instruct:free</option>
-          <option value="deepseek/deepseek-r1:free">deepseek/deepseek-r1:free</option>
-          <option value="google/gemma-3-27b-it:free">google/gemma-3-27b-it:free</option>
+          <option value="openai/gpt-oss-120b:free">openai/gpt-oss-120b:free ⭐ (chất lượng cao)</option>
+          <option value="z-ai/glm-4.5-air:free">z-ai/glm-4.5-air:free</option>
+          <option value="poolside/laguna-xs.2:free">poolside/laguna-xs.2:free (chuyên code)</option>
+          <option value="openai/gpt-oss-20b:free">openai/gpt-oss-20b:free (nhanh)</option>
         </select>
         <button class="save-key-btn" id="save-key-btn">Lưu key</button>
       </div>
@@ -840,8 +866,17 @@ const copyBtn = document.getElementById('copy-btn');
 const settingsCard = document.getElementById('settings-card');
 const settingsHead = document.getElementById('settings-head');
 const apiKeyInput = document.getElementById('api-key-input');
+const eyeToggle = document.getElementById('eye-toggle');
 const modelSelect = document.getElementById('model-select');
 const saveKeyBtn = document.getElementById('save-key-btn');
+
+eyeToggle.addEventListener('click', () => {
+  const showing = apiKeyInput.type === 'text';
+  apiKeyInput.type = showing ? 'password' : 'text';
+  eyeToggle.innerHTML = showing
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.94 10.94 0 0112 19c-7 0-11-7-11-7a18.6 18.6 0 015.06-5.94M9.9 4.24A10.4 10.4 0 0112 4c7 0 11 7 11 7a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>`;
+});
 const keyStatus = document.getElementById('key-status');
 const rememberKey = document.getElementById('remember-key');
 
@@ -1031,7 +1066,7 @@ async function runCode(){
     : `Code C++:\n\`\`\`cpp\n${code}\n\`\`\`\n\n(Không có stdin)`;
 
   try{
-    const model = modelSelect.value || 'qwen/qwen3-coder:free';
+    const model = modelSelect.value || 'openai/gpt-oss-120b:free';
     const messages = [
       { role: 'system', content: RUN_SYSTEM_PROMPT },
       { role: 'user', content: userMsg }
@@ -1080,10 +1115,9 @@ Nếu code không có lỗi gì, has_errors = false, diff là code giữ nguyên
 Không thêm bất kỳ văn bản nào ngoài JSON.`;
 
 const FALLBACK_MODELS = [
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'qwen/qwen3-coder:free',
-  'deepseek/deepseek-r1:free',
-  'google/gemma-3-27b-it:free',
+  'z-ai/glm-4.5-air:free',
+  'poolside/laguna-xs.2:free',
+  'openai/gpt-oss-20b:free',
 ];
 
 async function callOpenRouter(apiKey, model, messages){
@@ -1160,7 +1194,7 @@ async function fixCode(){
   result.classList.remove('show');
 
   try{
-    const model = modelSelect.value || 'qwen/qwen3-coder:free';
+    const model = modelSelect.value || 'openai/gpt-oss-120b:free';
     const messages = [
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: `Đây là code C++ cần kiểm tra và sửa lỗi:\n\n${code}` }
