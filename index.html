@@ -1586,6 +1586,12 @@ window.__CPP_HL = {
       transition-duration: 0.001ms !important;
       scroll-behavior: auto !important;
     }
+    /* Vòng xoay loading là chỉ báo TRẠNG THÁI (đang xử lý), không phải hiệu ứng trang trí —
+       vẫn phải quay để người dùng biết trang chưa bị đứng, kể cả khi bật Reduce Motion. */
+    .spin-ring, .spinner{
+      animation-duration: 0.7s !important;
+      animation-iteration-count: infinite !important;
+    }
   }
 </style>
 </head>
