@@ -1086,6 +1086,26 @@ window.__CPP_HL = {
     margin-top: 1px;
   }
 
+  /* ---------- REQUIREMENT CHECK (đối chiếu với đề bài) ---------- */
+  .requirement-card{
+    display: none;
+    margin-bottom: 18px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 14px 18px;
+    animation: riseIn 0.4s ease both;
+  }
+  .requirement-card.show{ display: block; }
+  .requirement-card.mismatch{ border-left-color: var(--red); }
+  .requirement-badge{
+    display:flex; align-items:center; gap:8px;
+    font-family: var(--display); font-weight:600; font-size: 13.5px;
+    margin-bottom: 6px;
+  }
+  .requirement-note{ font-size: 12.5px; color: var(--text-dim); line-height: 1.6; }
+
   /* ---------- SCORE CARD ---------- */
   .score-card{
     display: none;
@@ -1469,6 +1489,10 @@ window.__CPP_HL = {
           <option value="z-ai/glm-4.5-air:free">z-ai/glm-4.5-air:free</option>
           <option value="poolside/laguna-xs.2:free">poolside/laguna-xs.2:free (chuyên code)</option>
           <option value="openai/gpt-oss-20b:free">openai/gpt-oss-20b:free (nhanh)</option>
+          <option value="openrouter/free">openrouter/free ✨ (tự chọn model, hỗ trợ đọc ảnh)</option>
+          <option value="google/gemma-3-27b-it:free">google/gemma-3-27b-it:free (hỗ trợ đọc ảnh)</option>
+          <option value="qwen/qwen2.5-vl-32b-instruct:free">qwen/qwen2.5-vl-32b-instruct:free (hỗ trợ đọc ảnh)</option>
+          <option value="google/gemini-2.5-flash-lite">google/gemini-2.5-flash-lite (trả phí rất rẻ, đọc ảnh ổn định hơn)</option>
         </select>
         <button class="save-key-btn" id="save-key-btn">Lưu key</button>
       </div>
@@ -1481,6 +1505,40 @@ window.__CPP_HL = {
         Lấy API key miễn phí (không cần thẻ tín dụng) tại <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>.
         Model free không tốn credit; nếu chưa nạp credit, giới hạn ~50 lượt/ngày — nạp tối thiểu $10 (không hết hạn) để tăng lên 1000 lượt/ngày.
         Key chỉ lưu trên máy bạn, không gửi cho mình.
+      </div>
+    </div>
+  </div>
+
+  <div class="settings-card" id="problem-card">
+    <div class="settings-head" id="problem-head">
+      <div class="settings-head-left">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6M9 16h6M9 8h1M4 4h16v16H4z"/></svg>
+        <span class="settings-title">Đề bài (tuỳ chọn) — AI sẽ đối chiếu code với đề bài</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="key-status" id="problem-status">Chưa có đề bài</span>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+    </div>
+    <div class="settings-body">
+      <div class="settings-row" style="flex-direction:column; align-items:stretch;">
+        <textarea id="problem-text-input" placeholder="Dán/gõ đề bài dạng văn bản vào đây (vd: 'Cho mảng gồm n số nguyên, tìm phần tử lớn thứ hai...'). Bạn cũng có thể dán ảnh chụp đề bài trực tiếp vào ô này bằng Ctrl+V." style="width:100%; min-height:90px; background:var(--panel-2); border:1px solid var(--border); color:var(--text); font-family:var(--mono); font-size:13px; padding:10px 12px; border-radius:7px; outline:none; resize:vertical;"></textarea>
+      </div>
+      <div class="settings-row" id="problem-image-row" style="align-items:center;">
+        <button type="button" class="save-key-btn" id="problem-image-btn">+ Ảnh đề bài</button>
+        <input type="file" id="problem-image-file" accept="image/*" style="display:none">
+        <span style="font-size:12px; color:var(--text-dim);">hoặc dán ảnh (Ctrl+V) vào ô đề bài phía trên</span>
+      </div>
+      <div id="problem-image-preview-wrap" style="display:none; margin-top:12px;">
+        <div style="position:relative; display:inline-block;">
+          <img id="problem-image-preview" alt="Ảnh đề bài" style="max-width:220px; max-height:150px; border-radius:8px; border:1px solid var(--border); display:block; object-fit:contain; background:var(--panel-2);">
+          <button type="button" id="problem-image-remove" title="Xoá ảnh đề bài" style="position:absolute; top:-8px; right:-8px; width:22px; height:22px; border-radius:50%; background:var(--red); color:#0c1410; border:none; cursor:pointer; font-size:13px; line-height:1; font-weight:700;">×</button>
+        </div>
+      </div>
+      <div class="settings-note">
+        Khi có đề bài, AI sẽ kiểm tra thêm xem <b>thuật toán/code có thực sự giải đúng yêu cầu đề bài</b> chứ không chỉ dừng ở sửa lỗi cú pháp/logic thông thường.
+        Nếu bạn đính kèm ảnh, trang sẽ tự động thử lần lượt nhiều model/router miễn phí hỗ trợ đọc ảnh (vision) để AI đọc trực tiếp nội dung đề bài trong ảnh — không cần bạn tự gõ lại.
+        Model free đôi khi quá tải/hết lượt (đây là hạn chế của bên cung cấp, không phải lỗi trang này) — nếu vẫn báo lỗi sau khi đã thử hết, bạn có thể: (1) thử lại sau vài phút, (2) gõ/dán lại đề bài dạng văn bản, hoặc (3) chọn model <code>google/gemini-2.5-flash-lite</code> trong mục "Kết nối AI" phía trên — đây là model trả phí nhưng rất rẻ (thường dưới 1.000đ cho hàng trăm lượt) và đọc ảnh ổn định hơn nhiều so với model free.
       </div>
     </div>
   </div>
@@ -1565,6 +1623,11 @@ int main() {
     </div>
 
     <div id="success-view">
+      <div class="requirement-card" id="requirement-card">
+        <div class="requirement-badge" id="requirement-badge"></div>
+        <div class="requirement-note" id="requirement-note"></div>
+      </div>
+
       <div class="diff-card">
         <div class="diff-head">
           <span>main.cpp — bản đã sửa</span>
@@ -1790,6 +1853,9 @@ function stopThinking(){
 }
 const fixedCodeEl = document.getElementById('fixed-code');
 const explainText = document.getElementById('explain-text');
+const requirementCard = document.getElementById('requirement-card');
+const requirementBadge = document.getElementById('requirement-badge');
+const requirementNote = document.getElementById('requirement-note');
 const issueList = document.getElementById('issue-list');
 const issueSummary = document.getElementById('issue-summary');
 const optimizeCallout = document.getElementById('optimize-callout');
@@ -1866,6 +1932,85 @@ eyeToggle.addEventListener('click', () => {
 });
 const keyStatus = document.getElementById('key-status');
 const rememberKey = document.getElementById('remember-key');
+
+/* ---------- ĐỀ BÀI (problem statement: text hoặc ảnh) ---------- */
+const problemCard = document.getElementById('problem-card');
+const problemHead = document.getElementById('problem-head');
+const problemStatus = document.getElementById('problem-status');
+const problemTextInput = document.getElementById('problem-text-input');
+const problemImageBtn = document.getElementById('problem-image-btn');
+const problemImageFile = document.getElementById('problem-image-file');
+const problemImagePreviewWrap = document.getElementById('problem-image-preview-wrap');
+const problemImagePreview = document.getElementById('problem-image-preview');
+const problemImageRemove = document.getElementById('problem-image-remove');
+
+let problemImageData = null; // { dataUrl, mediaType }
+
+problemHead.addEventListener('click', () => {
+  problemCard.classList.toggle('open');
+});
+
+function updateProblemStatus(){
+  const hasText = !!problemTextInput.value.trim();
+  const hasImage = !!problemImageData;
+  if(hasText && hasImage){
+    problemStatus.textContent = 'Đề bài: văn bản + ảnh';
+    problemStatus.classList.add('ok');
+  } else if(hasText){
+    problemStatus.textContent = 'Đề bài: văn bản';
+    problemStatus.classList.add('ok');
+  } else if(hasImage){
+    problemStatus.textContent = 'Đề bài: ảnh';
+    problemStatus.classList.add('ok');
+  } else {
+    problemStatus.textContent = 'Chưa có đề bài';
+    problemStatus.classList.remove('ok');
+  }
+}
+
+function setProblemImageFromFile(file){
+  if(!file || !file.type || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    problemImageData = { dataUrl: reader.result, mediaType: file.type };
+    problemImagePreview.src = reader.result;
+    problemImagePreviewWrap.style.display = 'block';
+    problemCard.classList.add('open');
+    updateProblemStatus();
+  };
+  reader.readAsDataURL(file);
+}
+
+problemImageBtn.addEventListener('click', () => problemImageFile.click());
+problemImageFile.addEventListener('change', (e) => {
+  const file = e.target.files && e.target.files[0];
+  if(file) setProblemImageFromFile(file);
+  problemImageFile.value = '';
+});
+problemImageRemove.addEventListener('click', () => {
+  problemImageData = null;
+  problemImagePreview.src = '';
+  problemImagePreviewWrap.style.display = 'none';
+  updateProblemStatus();
+});
+problemTextInput.addEventListener('input', updateProblemStatus);
+problemTextInput.addEventListener('paste', (e) => {
+  const items = e.clipboardData && e.clipboardData.items;
+  if(!items) return;
+  for(const item of items){
+    if(item.type && item.type.startsWith('image/')){
+      const file = item.getAsFile();
+      if(file){ setProblemImageFromFile(file); e.preventDefault(); break; }
+    }
+  }
+});
+
+function getProblemContext(){
+  return {
+    text: problemTextInput.value.trim(),
+    image: problemImageData
+  };
+}
 
 const STORAGE_KEY = 'cppfix_openrouter_api_key';
 const STORAGE_MODEL = 'cppfix_openrouter_model';
@@ -2120,6 +2265,21 @@ const HEALTH_LABELS = {
   style: 'Style',
   security: 'Security'
 };
+/* ---------- ĐỐI CHIẾU ĐỀ BÀI ---------- */
+function renderRequirementCheck(match, note){
+  if(match !== true && match !== false){
+    requirementCard.classList.remove('show');
+    requirementCard.classList.remove('mismatch');
+    return;
+  }
+  requirementCard.classList.toggle('mismatch', match === false);
+  requirementBadge.textContent = match
+    ? '✅ Code đã giải đúng yêu cầu đề bài'
+    : '⚠️ Code CHƯA giải đúng yêu cầu đề bài';
+  requirementNote.textContent = note ? String(note) : '';
+  requirementCard.classList.add('show');
+}
+
 function renderHealthReport(health){
   const keys = (health && typeof health === 'object')
     ? Object.keys(HEALTH_LABELS).filter(k => health[k] != null && !isNaN(parseFloat(health[k])))
@@ -2715,9 +2875,10 @@ stdinToggle.addEventListener('click', () => {
   stdinToggle.textContent = isOpen ? '+ stdin' : '− stdin';
 });
 
-const SYSTEM_PROMPT = `Bạn là một trợ lý sửa lỗi code C++ chuyên nghiệp. Người dùng sẽ gửi một đoạn code C++ có thể bị lỗi (lỗi cú pháp, lỗi compile, hoặc lỗi logic runtime).
+const SYSTEM_PROMPT = `Bạn là một trợ lý sửa lỗi code C++ chuyên nghiệp. Người dùng sẽ gửi một đoạn code C++ có thể bị lỗi (lỗi cú pháp, lỗi compile, hoặc lỗi logic runtime). Đôi khi người dùng còn gửi kèm ĐỀ BÀI (yêu cầu bài toán) dưới dạng văn bản và/hoặc ảnh chụp — nếu có, đây là ngữ cảnh RẤT QUAN TRỌNG.
 
 Nhiệm vụ của bạn:
+0. NẾU có đề bài được cung cấp (văn bản trong tin nhắn, và/hoặc trong ảnh đính kèm): đọc kỹ và đối chiếu xem code (sau khi đã sửa lỗi cú pháp/logic thông thường) có thực sự GIẢI ĐÚNG YÊU CẦU của đề bài hay không — đúng thuật toán, đúng điều kiện biên, đúng định dạng input/output mà đề bài yêu cầu. Đây là việc kiểm tra RIÊNG, cao hơn việc chỉ soi lỗi compile/runtime: một đoạn code có thể compile chạy trơn tru nhưng vẫn SAI YÊU CẦU đề bài (vd đề bài yêu cầu in ra "YES"/"NO" nhưng code lại in 1/0, hoặc đề bài yêu cầu tìm giá trị nhỏ nhất nhưng code lại tìm giá trị lớn nhất, hoặc thiếu xử lý case biên mà đề bài mô tả). Nếu phát hiện sai lệch so với đề bài, PHẢI thêm ít nhất một issue tương ứng (severity "logic") mô tả rõ code sai ở đâu so với đề bài, và has_errors phải là true. Nếu KHÔNG có đề bài nào được cung cấp, bỏ qua bước này (để requirement_match = null, requirement_note = null).
 1. Tìm và sửa tất cả lỗi trong code.
 2. Phân loại MỖI lỗi tìm được vào đúng 1 trong 4 mức độ sau:
    - "critical": lỗi khiến code KHÔNG COMPILE được (thiếu dấu ;, sai cú pháp, thiếu khai báo, ngoặc không khớp...).
@@ -2798,12 +2959,15 @@ Nhiệm vụ của bạn:
   "algorithm_reasoning": {
     "algorithm": "vd Hash Map",
     "reasons": ["vd Tra cứu O(1)", "vd Không cần sắp xếp", "vd Giảm từ O(n^2) xuống O(n)"]
-  }
+  },
+  "requirement_match": true, hoặc false, hoặc null nếu không có đề bài nào được cung cấp,
+  "requirement_note": "giải thích ngắn 1-2 câu bằng tiếng Việt vì sao code khớp/không khớp đề bài, dẫn chứng cụ thể (vd tên biến, phần yêu cầu bị thiếu). null nếu requirement_match = null."
 }
 
 Nếu code không có lỗi gì: has_errors = false, issues = [] (mảng rỗng), fixed_code là chính code gốc giữ nguyên không đổi, và explanation nói rằng code đã đúng, không cần sửa. complexity_changed = false. score, category_scores, confidence_breakdown và health_report vẫn chấm bình thường theo chất lượng code hiện tại.
 Nếu code có lỗi: liệt kê TẤT CẢ lỗi tìm thấy vào mảng issues, sắp xếp theo độ nghiêm trọng giảm dần (critical trước, suggestion sau cùng).
 Nếu không có cơ hội tối ưu thuật toán nào đáng kể: optimization_opportunity = null. Nếu không có thuật toán nào đủ nổi bật để giải thích riêng: algorithm_reasoning = null.
+Nếu có ảnh đề bài đính kèm nhưng ảnh mờ/không đọc được rõ nội dung: vẫn cố gắng đọc phần đọc được, và trong requirement_note nói rõ phần nào không chắc chắn đọc đúng — không bịa nội dung đề bài.
 
 Không thêm bất kỳ văn bản nào ngoài JSON.`;
 
@@ -2812,6 +2976,25 @@ const FALLBACK_MODELS = [
   'poolside/laguna-xs.2:free',
   'openai/gpt-oss-20b:free',
 ];
+
+// Model/router có hỗ trợ đọc ảnh (vision) trên OpenRouter, miễn phí.
+// 'openrouter/free' tự động chọn 1 model free phù hợp — sẽ tự lọc ra model hỗ trợ ảnh khi request có ảnh.
+// Xếp theo thứ tự ưu tiên: nếu model đầu quá tải/lỗi (thường gặp với hàng free), tự động thử tiếp model kế tiếp.
+const VISION_FALLBACK_MODELS = [
+  'openrouter/free',
+  'google/gemma-3-27b-it:free',
+  'qwen/qwen2.5-vl-32b-instruct:free',
+  'meta-llama/llama-3.2-11b-vision-instruct:free',
+  'mistralai/mistral-small-3.1-24b-instruct:free',
+];
+
+// Toàn bộ model được biết là hỗ trợ đọc ảnh (bao gồm cả model trả phí trong dropdown) —
+// dùng để nhận diện khi người dùng CHỦ ĐỘNG chọn 1 model vision cụ thể (kể cả trả phí),
+// khi đó ưu tiên đúng model họ chọn thay vì tự ý đổi sang chuỗi model free.
+const KNOWN_VISION_MODELS = new Set([
+  ...VISION_FALLBACK_MODELS,
+  'google/gemini-2.5-flash-lite',
+]);
 
 async function callOpenRouter(apiKey, model, messages){
   const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -2845,18 +3028,22 @@ async function callOpenRouter(apiKey, model, messages){
   return text;
 }
 
-async function callWithFallback(apiKey, primaryModel, messages){
+async function callWithFallback(apiKey, primaryModel, messages, fallbackList){
+  const list = fallbackList || FALLBACK_MODELS;
+  const rememberSelection = !fallbackList; // chỉ ghi đè lựa chọn model của người dùng khi dùng chuỗi fallback mặc định (không phải vision)
   const tried = [];
   try {
     return await callOpenRouter(apiKey, primaryModel, messages);
   } catch(err) {
     tried.push(err.message || String(err));
-    const fallbacks = FALLBACK_MODELS.filter(m => m !== primaryModel);
+    const fallbacks = list.filter(m => m !== primaryModel);
     for(const fb of fallbacks){
       try {
         const result = await callOpenRouter(apiKey, fb, messages);
-        modelSelect.value = fb;
-        localStorage.setItem(STORAGE_MODEL, fb);
+        if(rememberSelection){
+          modelSelect.value = fb;
+          localStorage.setItem(STORAGE_MODEL, fb);
+        }
         return result;
       } catch(e){ tried.push(e.message || String(e)); }
     }
@@ -2893,15 +3080,44 @@ async function fixCode(){
   complexityCard.classList.remove('show');
   reviewCard.classList.remove('show');
   metaCard.classList.remove('show');
+  requirementCard.classList.remove('show');
   startThinking();
 
+  const problem = getProblemContext();
+  const hasImage = !!problem.image;
+
   try{
-    const model = modelSelect.value || 'openai/gpt-oss-120b:free';
+    // Khi có ảnh đề bài: nếu người dùng đã tự chọn 1 model hỗ trợ đọc ảnh (kể cả model trả phí) ở mục
+    // "Kết nối AI", dùng đúng model đó làm lựa chọn chính. Ngược lại (đang chọn model chữ thuần mặc định),
+    // tự động chuyển sang model/router vision miễn phí đầu tiên để AI thực sự đọc được ảnh.
+    const selectedModel = modelSelect.value;
+    const model = hasImage
+      ? (KNOWN_VISION_MODELS.has(selectedModel) ? selectedModel : VISION_FALLBACK_MODELS[0])
+      : (selectedModel || 'openai/gpt-oss-120b:free');
+
+    let userText = `Đây là code C++ cần kiểm tra và sửa lỗi:\n\n${code}`;
+    if(problem.text){
+      userText += `\n\n---\nĐỀ BÀI (văn bản do người dùng cung cấp):\n${problem.text}\n---\nHãy đối chiếu code ở trên với đề bài này theo hướng dẫn ở bước 0.`;
+    }
+    if(problem.image){
+      userText += `\n\n(Có kèm thêm một ảnh chụp đề bài — hãy đọc kỹ nội dung trong ảnh (kể cả nếu là chữ viết tay/chụp màn hình) và đối chiếu cùng với phần văn bản đề bài ở trên, nếu có.)`;
+    }
+
+    let userContent = userText;
+    if(problem.image){
+      userContent = [
+        { type: 'text', text: userText },
+        { type: 'image_url', image_url: { url: problem.image.dataUrl } }
+      ];
+    }
+
     const messages = [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: `Đây là code C++ cần kiểm tra và sửa lỗi:\n\n${code}` }
+      { role: 'user', content: userContent }
     ];
-    const rawText = await callWithFallback(apiKey, model, messages);
+    const rawText = hasImage
+      ? await callWithFallback(apiKey, model, messages, VISION_FALLBACK_MODELS)
+      : await callWithFallback(apiKey, model, messages);
     const cleaned = rawText.replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
 
     let parsed;
@@ -2931,6 +3147,10 @@ async function fixCode(){
     lastOriginalCode = code;
     lastIssues = issues;
     renderIssues(issues);
+    renderRequirementCheck(
+      parsed.requirement_match === true || parsed.requirement_match === false ? parsed.requirement_match : null,
+      parsed.requirement_note || ''
+    );
 
     const hasCriticalOrLogic = issues.some(it => it.severity === 'critical' || it.severity === 'logic');
     showOptimizeCallout(hasCriticalOrLogic, issues);
@@ -2967,6 +3187,8 @@ async function fixCode(){
       msg = 'API key không hợp lệ hoặc bị sai định dạng. Hãy xoá trắng ô key, dán lại key gốc từ openrouter.ai/keys (không kèm chữ "Bearer", không có khoảng trắng/dòng trống thừa), rồi bấm "Lưu key" lại.';
     } else if(/rate.?limit|429/i.test(msg)){
       msg = 'Đã chạm giới hạn lượt gọi miễn phí trong ngày. Hãy thử lại sau, hoặc đổi sang model free khác trong phần Kết nối AI.';
+    } else if(hasImage){
+      msg += '\n\nGợi ý: các model/router hỗ trợ đọc ảnh miễn phí đôi khi quá tải. Hãy thử lại sau ít phút, hoặc tạm thời xoá ảnh và gõ/dán lại đề bài dạng văn bản ở mục "Đề bài" để chắc chắn AI phân tích được ngay.';
     }
     errorText.textContent = msg;
   } finally{
