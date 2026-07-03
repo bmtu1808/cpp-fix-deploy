@@ -1100,6 +1100,44 @@ window.__CPP_HL = {
     border: 1px solid rgba(192,132,252,0.35);
     margin-left: 4px;
   }
+
+  /* ---------- CẢNH BÁO TLE: đối chiếu độ phức tạp code với giới hạn n của đề bài ---------- */
+  .tle-callout{
+    display: none;
+    margin-top: 18px;
+    align-items: flex-start;
+    gap: 14px;
+    border-radius: 10px;
+    padding: 16px 20px;
+    animation: riseIn 0.4s ease both;
+  }
+  .tle-callout.show{ display: flex; }
+  .tle-icon{ font-size: 20px; line-height: 1; flex-shrink: 0; margin-top: 1px; }
+  .tle-body{ flex: 1; min-width: 0; }
+  .tle-line{ display: flex; align-items: center; gap: 9px; font-size: 13px; margin-bottom: 7px; flex-wrap: wrap; }
+  .tle-label{ color: var(--text-dim); min-width: 78px; }
+  .tle-value{
+    font-family: var(--mono);
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+  }
+  .tle-verdict{ font-family: var(--display); font-weight: 700; font-size: 14px; margin-top: 6px; }
+  .tle-note{ font-size: 12.5px; color: var(--text-dim); margin-top: 6px; line-height: 1.6; }
+
+  .tle-callout.risk-tle{ border: 1px solid rgba(244,113,116,0.4); background: rgba(244,113,116,0.07); animation: riseIn 0.4s ease both, shakeX 0.5s ease 0.4s both; }
+  .tle-callout.risk-tle .tle-verdict{ color: var(--red); }
+  .tle-callout.risk-tle .tle-value{ border-color: rgba(244,113,116,0.35); }
+
+  .tle-callout.risk-risky{ border: 1px solid rgba(255,180,84,0.4); background: rgba(255,180,84,0.07); }
+  .tle-callout.risk-risky .tle-verdict{ color: var(--amber); }
+  .tle-callout.risk-risky .tle-value{ border-color: rgba(255,180,84,0.35); }
+
+  .tle-callout.risk-ok{ border: 1px solid rgba(95,208,104,0.35); background: rgba(95,208,104,0.06); }
+  .tle-callout.risk-ok .tle-verdict{ color: var(--accent); }
+  .tle-callout.risk-ok .tle-value{ border-color: rgba(95,208,104,0.3); }
   .algo-opt-btn{
     font-family: var(--display);
     font-weight: 600;
@@ -2016,6 +2054,22 @@ int main() {
         </div>
       </div>
 
+      <div class="tle-callout" id="tle-callout">
+        <div class="tle-icon" id="tle-icon">⚠</div>
+        <div class="tle-body">
+          <div class="tle-line">
+            <span class="tle-label">Thuật toán</span>
+            <span class="tle-value" id="tle-complexity">—</span>
+          </div>
+          <div class="tle-line">
+            <span class="tle-label">Giới hạn</span>
+            <span class="tle-value" id="tle-constraint">—</span>
+          </div>
+          <div class="tle-verdict" id="tle-verdict"></div>
+          <div class="tle-note" id="tle-note"></div>
+        </div>
+      </div>
+
       <div class="algo-opt-callout" id="algo-opt-callout">
         <div class="algo-opt-badge">✨ Phát hiện cơ hội tối ưu thuật toán</div>
         <div class="algo-opt-compare">
@@ -2214,6 +2268,12 @@ const ccTimeValue = document.getElementById('cc-time-value');
 const ccMemoryStat = document.getElementById('cc-memory-stat');
 const ccMemoryValue = document.getElementById('cc-memory-value');
 const algoOptCallout = document.getElementById('algo-opt-callout');
+const tleCallout = document.getElementById('tle-callout');
+const tleIcon = document.getElementById('tle-icon');
+const tleComplexity = document.getElementById('tle-complexity');
+const tleConstraint = document.getElementById('tle-constraint');
+const tleVerdict = document.getElementById('tle-verdict');
+const tleNote = document.getElementById('tle-note');
 const algoOptCurrent = document.getElementById('algo-opt-current');
 const algoOptTarget = document.getElementById('algo-opt-target');
 const algoOptBtn = document.getElementById('algo-opt-btn');
@@ -2643,6 +2703,34 @@ const HEALTH_LABELS = {
   style: 'Style',
   security: 'Security'
 };
+/* ---------- CẢNH BÁO TLE (đối chiếu độ phức tạp code với giới hạn n của đề bài) ---------- */
+function renderTLERisk(tle){
+  if(!tle || typeof tle !== 'object' || !tle.risk_level){
+    tleCallout.classList.remove('show','risk-tle','risk-risky','risk-ok');
+    return;
+  }
+  const level = String(tle.risk_level).toLowerCase(); // 'tle' | 'risky' | 'ok'
+  tleComplexity.textContent = tle.complexity ? String(tle.complexity) : '—';
+  tleConstraint.textContent = tle.constraint ? String(tle.constraint) : '—';
+  tleNote.textContent = tle.note ? String(tle.note) : '';
+
+  tleCallout.classList.remove('risk-tle','risk-risky','risk-ok');
+  if(level === 'tle'){
+    tleIcon.textContent = '⚠';
+    tleVerdict.textContent = tle.verdict || '=> Chắc chắn TLE (Time Limit Exceeded).';
+    tleCallout.classList.add('risk-tle');
+  } else if(level === 'risky'){
+    tleIcon.textContent = '⚠';
+    tleVerdict.textContent = tle.verdict || '=> Có nguy cơ TLE, nên cân nhắc tối ưu thêm.';
+    tleCallout.classList.add('risk-risky');
+  } else {
+    tleIcon.textContent = '✅';
+    tleVerdict.textContent = tle.verdict || '=> Đủ nhanh trong giới hạn của đề bài.';
+    tleCallout.classList.add('risk-ok');
+  }
+  tleCallout.classList.add('show');
+}
+
 /* ---------- PROBLEM SUMMARY (tóm tắt đề bài AI vừa đọc) ---------- */
 function renderProblemSummary(ps){
   if(!ps || typeof ps !== 'object'){
@@ -3318,7 +3406,14 @@ Nhiệm vụ của bạn:
     - constraints: giới hạn kích thước input theo đề bài nêu rõ (vd "n ≤ 10^6"), null nếu đề bài không nêu.
     - memory_limit: giới hạn bộ nhớ theo đề bài nêu rõ (vd "256MB"), null nếu đề bài không nêu.
     NẾU KHÔNG có đề bài nào được cung cấp, để problem_summary = null — không tự bịa ra tóm tắt đề bài khi không có đề bài.
-16. Trả lời CHỈ bằng một đối tượng JSON hợp lệ, không có markdown, không có \`\`\`, không có lời mở đầu, theo đúng định dạng sau:
+16. NẾU có đề bài với giới hạn kích thước input rõ ràng (constraints trong problem_summary, vd "n ≤ 10^6") VÀ xác định được độ phức tạp Big-O thực tế của code SAU KHI ĐÃ SỬA: hãy ước tính số phép tính xấp xỉ bằng cách thay giá trị n lớn nhất vào Big-O đó, rồi so với ngưỡng máy chấm thông thường (~10^8 phép tính/giây cho 1 giây chạy). Trả về tle_risk gồm:
+    - complexity: độ phức tạp thực tế của code (vd "O(n^3)").
+    - constraint: giới hạn n lấy từ đề bài (vd "n ≤ 10^6").
+    - risk_level: chỉ chọn đúng 1 trong "tle" (chắc chắn/gần như chắc chắn vượt quá thời gian, vd số phép tính ước tính > ~10^10), "risky" (khá rủi ro, sát ngưỡng, khoảng 10^8-10^10 phép tính, tuỳ thời gian giới hạn cụ thể), "ok" (an toàn, dưới ngưỡng).
+    - verdict: MỘT câu ngắn bằng tiếng Việt, PHẢI bắt đầu bằng "=> " (vd "=> Chắc chắn TLE.", "=> Có nguy cơ TLE nếu giới hạn thời gian chặt.", "=> Đủ nhanh trong giới hạn của đề bài.").
+    - note: giải thích ngắn 1 câu bằng tiếng Việt vì sao (vd nêu rõ số phép tính ước tính, vd "O(n³) với n=10^6 → khoảng 10^18 phép tính, vượt xa khả năng xử lý trong vài giây.").
+    NẾU KHÔNG có đề bài, KHÔNG có giới hạn n rõ ràng trong đề bài, hoặc KHÔNG xác định chắc chắn được độ phức tạp của code, để tle_risk = null — không suy đoán/bịa số khi thiếu dữ kiện.
+17. Trả lời CHỈ bằng một đối tượng JSON hợp lệ, không có markdown, không có \`\`\`, không có lời mở đầu, theo đúng định dạng sau:
 
 {
   "has_errors": true hoặc false,
@@ -3379,8 +3474,16 @@ Nhiệm vụ của bạn:
     "expected_complexity": "vd O(n)",
     "constraints": "vd n ≤ 10^6",
     "memory_limit": "vd 256MB"
+  },
+  "tle_risk": {
+    "complexity": "vd O(n^3)",
+    "constraint": "vd n ≤ 10^6",
+    "risk_level": "tle",
+    "verdict": "=> Chắc chắn TLE.",
+    "note": "vd O(n³) với n=10^6 → khoảng 10^18 phép tính, vượt xa khả năng xử lý trong vài giây."
   }
 }
+Trường "tle_risk" ở trên phải là null nếu không có đề bài, không có giới hạn n rõ ràng, hoặc không xác định chắc chắn được độ phức tạp code.
 Trường "problem_summary" ở trên phải là null (không phải object rỗng) nếu không có đề bài nào được cung cấp trong tin nhắn.
 
 Nếu code không có lỗi gì: has_errors = false, issues = [] (mảng rỗng), fixed_code là chính code gốc giữ nguyên không đổi, và explanation nói rằng code đã đúng, không cần sửa. complexity_changed = false. score, category_scores, confidence_breakdown và health_report vẫn chấm bình thường theo chất lượng code hiện tại.
@@ -3501,6 +3604,7 @@ async function fixCode(){
   metaCard.classList.remove('show');
   requirementCard.classList.remove('show');
   problemSummaryCard.classList.remove('show');
+  tleCallout.classList.remove('show','risk-tle','risk-risky','risk-ok');
 
   const problem = getProblemContext();
   const hasImage = !!problem.image;
@@ -3590,6 +3694,7 @@ async function fixCode(){
       parsed.time_estimate,
       parsed.memory_estimate
     );
+    renderTLERisk(parsed.tle_risk || null);
     renderCategoryScores(parsed.category_scores || null);
     renderReviewMeta(parsed.ai_summary || '', parsed.confidence, parsed.confidence_breakdown || null, parsed.next_actions || [], parsed.next_action || '');
     renderOptimizationOpportunity(parsed.optimization_opportunity || null);
@@ -3629,7 +3734,7 @@ async function fixCode(){
 function staggerResultCards(){
   const order = [
     problemSummaryCard, requirementCard, document.querySelector('.diff-card'), document.querySelector('.explain-card'),
-    scoreCard, healthCard, complexityCard, algoOptCallout, algoReasonCard, reviewCard, metaCard, optimizeCallout
+    scoreCard, healthCard, complexityCard, tleCallout, algoOptCallout, algoReasonCard, reviewCard, metaCard, optimizeCallout
   ];
   let i = 0;
   order.forEach(card => {
