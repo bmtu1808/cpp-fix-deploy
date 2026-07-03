@@ -273,12 +273,34 @@ window.__CPP_HL = {
   .env-banner a{ color: #ffd090; }
 
   /* ---------- SETTINGS / API KEY ---------- */
+  #settings-card{ --card-accent: var(--blue); --card-accent-soft: rgba(122,209,255,0.13); --card-accent-glow: rgba(122,209,255,0.22); }
+  #problem-card{ --card-accent: var(--amber); --card-accent-soft: rgba(255,180,84,0.13); --card-accent-glow: rgba(255,180,84,0.22); }
   .settings-card{
+    position: relative;
     margin-top: 28px;
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--panel);
     overflow: hidden;
+    transition: border-color 0.3s ease, box-shadow 0.35s ease;
+  }
+  .settings-card.open{
+    border-color: var(--card-accent);
+    box-shadow: 0 0 0 1px var(--card-accent-soft), 0 18px 38px -22px var(--card-accent-glow);
+  }
+  .settings-card::before{
+    content:"";
+    position:absolute; top:0; left:0; right:0; height:2px;
+    background: linear-gradient(90deg, transparent, var(--card-accent), transparent);
+    background-size: 200% 100%;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+  .settings-card.open::before{ opacity: 1; animation: shimmerBar 2.6s ease-in-out infinite; }
+  @keyframes shimmerBar{
+    0%{ background-position: 200% 0; }
+    100%{ background-position: -200% 0; }
   }
   .settings-head{
     display:flex;
@@ -287,9 +309,30 @@ window.__CPP_HL = {
     padding: 14px 18px;
     cursor: pointer;
     user-select: none;
+    transition: background 0.3s ease;
   }
+  .settings-card.open .settings-head{ background: var(--card-accent-soft); }
+  .settings-head:hover{ background: var(--card-accent-soft); }
   .settings-head-left{ display:flex; align-items:center; gap:10px; }
-  .settings-head-left svg{ width:15px; height:15px; color: var(--amber); }
+  .settings-head-left .icon-badge{
+    display:flex; align-items:center; justify-content:center;
+    width: 27px; height: 27px;
+    border-radius: 8px;
+    background: var(--card-accent-soft);
+    color: var(--card-accent);
+    flex-shrink:0;
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s ease;
+  }
+  .settings-card.open .icon-badge{ transform: scale(1.08) rotate(-4deg); }
+  @keyframes badgeWiggle{
+    0%{ transform: scale(1.08) rotate(-4deg); }
+    25%{ transform: scale(1.18) rotate(10deg); }
+    50%{ transform: scale(1.05) rotate(-10deg); }
+    75%{ transform: scale(1.14) rotate(6deg); }
+    100%{ transform: scale(1.08) rotate(-4deg); }
+  }
+  .icon-badge.wiggle{ animation: badgeWiggle 0.55s ease; }
+  .settings-head-left svg{ width:15px; height:15px; color: inherit; }
   .settings-title{ font-family: var(--display); font-size: 14px; font-weight:600; }
   .key-status{
     font-size: 11px;
@@ -297,16 +340,39 @@ window.__CPP_HL = {
     border-radius: 20px;
     border: 1px solid var(--border);
     color: var(--text-dim);
+    transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease;
   }
-  .key-status.ok{ color: var(--accent); border-color: var(--accent-dim); background: rgba(95,208,104,0.08); }
-  .chevron{ width:14px; height:14px; color: var(--text-dim); transition: transform 0.15s ease; }
-  .settings-card.open .chevron{ transform: rotate(180deg); }
+  @keyframes statusGlow{
+    0%,100%{ box-shadow: 0 0 0 0 rgba(95,208,104,0.35); }
+    50%{ box-shadow: 0 0 0 5px rgba(95,208,104,0); }
+  }
+  .key-status.ok{ color: var(--accent); border-color: var(--accent-dim); background: rgba(95,208,104,0.08); animation: statusGlow 2.4s ease-out infinite; }
+  @keyframes statusPop{
+    0%{ transform: scale(0.85); }
+    55%{ transform: scale(1.08); }
+    100%{ transform: scale(1); }
+  }
+  .key-status.pop{ animation: statusPop 0.35s cubic-bezier(.25,.8,.35,1.3) both, statusGlow 2.4s ease-out infinite; }
+  .chevron{ width:14px; height:14px; color: var(--text-dim); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), color 0.3s ease; }
+  .settings-card.open .chevron{ transform: rotate(180deg); color: var(--card-accent); }
   .settings-body{
-    display:none;
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 0.38s cubic-bezier(0.4,0,0.2,1), opacity 0.28s ease;
+  }
+  .settings-card.open .settings-body{ grid-template-rows: 1fr; opacity: 1; }
+  .settings-body-inner{
+    overflow: hidden;
+    min-height: 0;
     padding: 4px 18px 20px;
     border-top: 1px solid var(--border);
   }
-  .settings-card.open .settings-body{ display:block; }
+  @keyframes rowPop{
+    from{ opacity:0; transform: translateY(10px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
+  .settings-body-inner > .row-pop{ animation: rowPop 0.42s cubic-bezier(0.22,1,0.36,1) both; }
   .settings-row{
     display:flex;
     gap:10px;
@@ -329,8 +395,14 @@ window.__CPP_HL = {
     padding: 10px 40px 10px 12px;
     border-radius: 7px;
     outline:none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
   }
-  .key-input-wrap input:focus{ border-color: var(--accent-dim); }
+  .settings-card input:focus, .settings-card select:focus, .settings-card textarea:focus{
+    border-color: var(--card-accent);
+    box-shadow: 0 0 0 3px var(--card-accent-soft);
+    transform: translateY(-1px);
+  }
+  #problem-text-input:focus{ border-color: var(--card-accent) !important; box-shadow: 0 0 0 3px var(--card-accent-soft); transform: translateY(-1px); }
   .eye-toggle{
     position: absolute;
     right: 6px;
@@ -344,8 +416,9 @@ window.__CPP_HL = {
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: color 0.2s ease, transform 0.15s ease;
   }
-  .eye-toggle:hover{ color: var(--text); }
+  .eye-toggle:hover{ color: var(--card-accent); transform: translateY(-50%) scale(1.12); }
   .eye-toggle svg{ width: 16px; height: 16px; }
   .settings-row select{
     background: var(--panel-2);
@@ -356,6 +429,7 @@ window.__CPP_HL = {
     padding: 10px 12px;
     border-radius: 7px;
     outline:none;
+    transition: border-color 0.2s ease;
   }
   .save-key-btn{
     background: var(--panel-2);
@@ -367,22 +441,24 @@ window.__CPP_HL = {
     padding: 10px 16px;
     border-radius: 7px;
     cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease, transform 0.15s ease;
   }
-  .save-key-btn:hover{ border-color: var(--accent-dim); color: var(--accent); }
+  .save-key-btn:hover{ border-color: var(--card-accent); color: var(--card-accent); background: var(--card-accent-soft); transform: translateY(-1px); }
+  .save-key-btn:active{ transform: translateY(0) scale(0.96); }
   .settings-note{
     margin-top: 12px;
     font-size: 12px;
     color: var(--text-dim);
     line-height: 1.6;
   }
-  .settings-note a{ color: var(--amber); text-decoration: none; border-bottom: 1px dotted var(--amber); }
+  .settings-note a{ color: var(--card-accent); text-decoration: none; border-bottom: 1px dotted var(--card-accent); }
   .remember-row{
     display:flex; align-items:center; gap:7px;
     margin-top: 12px;
     font-size: 12.5px;
     color: var(--text-dim);
   }
-  .remember-row input{ accent-color: var(--accent); }
+  .remember-row input{ accent-color: var(--card-accent); }
 
   /* ---------- EDITOR CARD ---------- */
   .editor-card{
@@ -1113,6 +1189,47 @@ window.__CPP_HL = {
   }
   .requirement-note{ font-size: 12.5px; color: var(--text-dim); line-height: 1.6; }
 
+  /* ---------- PROBLEM SUMMARY (tóm tắt đề bài do AI đọc) ---------- */
+  .problem-summary-card{
+    display: none;
+    margin-bottom: 18px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 16px 20px;
+    animation: riseIn 0.4s ease both;
+  }
+  .problem-summary-card.show{ display: block; }
+  .ps-head{
+    display:flex; align-items:center; gap:8px;
+    font-family: var(--display); font-weight:600; font-size: 13.5px;
+    margin-bottom: 12px;
+  }
+  .ps-head .ps-check{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:18px; height:18px; border-radius:50%;
+    background: rgba(95,208,104,0.15); color: var(--accent);
+    flex-shrink:0;
+  }
+  .ps-head .ps-check svg{ width:11px; height:11px; }
+  .ps-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .ps-item{
+    display:flex; flex-direction:column; gap:3px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+  }
+  .ps-item .ps-label{ font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.03em; }
+  .ps-item .ps-value{ font-family: var(--display); font-weight: 700; font-size: 13.5px; color: var(--text); }
+  .ps-item.ps-difficulty .ps-value.easy{ color: var(--accent); }
+  .ps-item.ps-difficulty .ps-value.medium{ color: var(--amber); }
+  .ps-item.ps-difficulty .ps-value.hard{ color: var(--red); }
+
   /* ---------- SCORE CARD ---------- */
   .score-card{
     display: none;
@@ -1624,7 +1741,7 @@ window.__CPP_HL = {
   <div class="settings-card" id="settings-card">
     <div class="settings-head" id="settings-head">
       <div class="settings-head-left">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v6m0 10v6m9-9h-6M9 12H3m13.36-6.36l-4.24 4.24m-4.24 4.24l-4.24 4.24m12.72 0l-4.24-4.24M7.64 7.64L3.4 3.4"/></svg>
+        <span class="icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v6m0 10v6m9-9h-6M9 12H3m13.36-6.36l-4.24 4.24m-4.24 4.24l-4.24 4.24m12.72 0l-4.24-4.24M7.64 7.64L3.4 3.4"/></svg></span>
         <span class="settings-title">Kết nối AI miễn phí (OpenRouter)</span>
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
@@ -1633,6 +1750,7 @@ window.__CPP_HL = {
       </div>
     </div>
     <div class="settings-body">
+      <div class="settings-body-inner">
       <div class="settings-row">
         <div class="key-input-wrap">
           <input type="password" id="api-key-input" placeholder="Dán OpenRouter API key của bạn vào đây (sk-or-v1-...)">
@@ -1662,13 +1780,14 @@ window.__CPP_HL = {
         Model free không tốn credit; nếu chưa nạp credit, giới hạn ~50 lượt/ngày — nạp tối thiểu $10 (không hết hạn) để tăng lên 1000 lượt/ngày.
         Key chỉ lưu trên máy bạn, không gửi cho mình.
       </div>
+      </div>
     </div>
   </div>
 
   <div class="settings-card" id="problem-card">
     <div class="settings-head" id="problem-head">
       <div class="settings-head-left">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6M9 16h6M9 8h1M4 4h16v16H4z"/></svg>
+        <span class="icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6M9 16h6M9 8h1M4 4h16v16H4z"/></svg></span>
         <span class="settings-title">Đề bài (tuỳ chọn) — AI sẽ đối chiếu code với đề bài</span>
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
@@ -1677,6 +1796,7 @@ window.__CPP_HL = {
       </div>
     </div>
     <div class="settings-body">
+      <div class="settings-body-inner">
       <div class="settings-row" style="flex-direction:column; align-items:stretch;">
         <textarea id="problem-text-input" placeholder="Dán/gõ đề bài dạng văn bản vào đây (vd: 'Cho mảng gồm n số nguyên, tìm phần tử lớn thứ hai...'). Bạn cũng có thể dán ảnh chụp đề bài trực tiếp vào ô này bằng Ctrl+V." style="width:100%; min-height:90px; background:var(--panel-2); border:1px solid var(--border); color:var(--text); font-family:var(--mono); font-size:13px; padding:10px 12px; border-radius:7px; outline:none; resize:vertical;"></textarea>
       </div>
@@ -1695,6 +1815,7 @@ window.__CPP_HL = {
         Khi có đề bài, AI sẽ kiểm tra thêm xem <b>thuật toán/code có thực sự giải đúng yêu cầu đề bài</b> chứ không chỉ dừng ở sửa lỗi cú pháp/logic thông thường.
         Nếu bạn đính kèm ảnh, trang sẽ tự động thử lần lượt nhiều model/router miễn phí hỗ trợ đọc ảnh (vision) để AI đọc trực tiếp nội dung đề bài trong ảnh — không cần bạn tự gõ lại.
         Model free đôi khi quá tải/hết lượt (đây là hạn chế của bên cung cấp, không phải lỗi trang này) — nếu vẫn báo lỗi sau khi đã thử hết, bạn có thể: (1) thử lại sau vài phút, (2) gõ/dán lại đề bài dạng văn bản, hoặc (3) chọn model <code>google/gemini-2.5-flash-lite</code> trong mục "Kết nối AI" phía trên — đây là model trả phí nhưng rất rẻ (thường dưới 1.000đ cho hàng trăm lượt) và đọc ảnh ổn định hơn nhiều so với model free.
+      </div>
       </div>
     </div>
   </div>
@@ -1743,15 +1864,19 @@ int main() {
       <span class="icon"><span class="dash"></span></span>
       <span>Đọc code của bạn...</span>
     </div>
-    <div class="thinking-step" data-step="1">
+    <div class="thinking-step thinking-step-problem" data-step="1">
       <span class="icon"><span class="dash"></span></span>
-      <span>Tìm lỗi cú pháp...</span>
+      <span>Đọc và đối chiếu đề bài...</span>
     </div>
     <div class="thinking-step" data-step="2">
       <span class="icon"><span class="dash"></span></span>
-      <span>Kiểm tra logic chương trình...</span>
+      <span>Tìm lỗi cú pháp...</span>
     </div>
     <div class="thinking-step" data-step="3">
+      <span class="icon"><span class="dash"></span></span>
+      <span>Kiểm tra logic chương trình...</span>
+    </div>
+    <div class="thinking-step" data-step="4">
       <span class="icon"><span class="dash"></span></span>
       <span>Tạo code đã sửa...</span>
     </div>
@@ -1779,6 +1904,39 @@ int main() {
     </div>
 
     <div id="success-view">
+      <div class="problem-summary-card" id="problem-summary-card">
+        <div class="ps-head">
+          <span class="ps-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></span>
+          <span>Đã đọc đề — Problem Summary</span>
+        </div>
+        <div class="ps-grid" id="ps-grid">
+          <div class="ps-item">
+            <span class="ps-label">Pattern</span>
+            <span class="ps-value" id="ps-pattern">—</span>
+          </div>
+          <div class="ps-item">
+            <span class="ps-label">Frequency</span>
+            <span class="ps-value" id="ps-frequency">—</span>
+          </div>
+          <div class="ps-item ps-difficulty">
+            <span class="ps-label">Difficulty</span>
+            <span class="ps-value" id="ps-difficulty">—</span>
+          </div>
+          <div class="ps-item">
+            <span class="ps-label">Expected Complexity</span>
+            <span class="ps-value" id="ps-complexity">—</span>
+          </div>
+          <div class="ps-item">
+            <span class="ps-label">Constraints</span>
+            <span class="ps-value" id="ps-constraints">—</span>
+          </div>
+          <div class="ps-item">
+            <span class="ps-label">Memory</span>
+            <span class="ps-value" id="ps-memory">—</span>
+          </div>
+        </div>
+      </div>
+
       <div class="requirement-card" id="requirement-card">
         <div class="requirement-badge" id="requirement-badge"></div>
         <div class="requirement-note" id="requirement-note"></div>
@@ -1972,15 +2130,21 @@ const ICON_CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
 const ICON_DASH = `<span class="dash"></span>`;
 
 let thinkingTimer = null;
-function startThinking(){
+function startThinking(hasProblem){
   thinkingCard.classList.add('show');
-  thinkingSteps.forEach(el => {
+  // Bước "Đọc và đối chiếu đề bài" chỉ hiện khi người dùng thực sự có cung cấp đề bài (text/ảnh)
+  const steps = thinkingSteps.filter(el => {
+    const isProblemStep = el.classList.contains('thinking-step-problem');
+    el.style.display = (isProblemStep && !hasProblem) ? 'none' : '';
+    return !(isProblemStep && !hasProblem);
+  });
+  steps.forEach(el => {
     el.classList.remove('active','done');
     el.querySelector('.icon').innerHTML = ICON_DASH;
   });
   let i = 0;
   const activate = (idx) => {
-    thinkingSteps.forEach((el, n) => {
+    steps.forEach((el, n) => {
       const icon = el.querySelector('.icon');
       if(n < idx){ el.classList.remove('active'); el.classList.add('done'); icon.innerHTML = ICON_CHECK; }
       else if(n === idx){ el.classList.add('active'); el.classList.remove('done'); icon.innerHTML = ICON_SPIN; }
@@ -1990,7 +2154,7 @@ function startThinking(){
   activate(0);
   thinkingTimer = setInterval(() => {
     i++;
-    if(i >= thinkingSteps.length){
+    if(i >= steps.length){
       clearInterval(thinkingTimer);
       // Giữ bước cuối ở trạng thái "đang chạy" cho tới khi có kết quả thật
       return;
@@ -2009,6 +2173,13 @@ function stopThinking(){
 }
 const fixedCodeEl = document.getElementById('fixed-code');
 const explainText = document.getElementById('explain-text');
+const problemSummaryCard = document.getElementById('problem-summary-card');
+const psPattern = document.getElementById('ps-pattern');
+const psFrequency = document.getElementById('ps-frequency');
+const psDifficulty = document.getElementById('ps-difficulty');
+const psComplexity = document.getElementById('ps-complexity');
+const psConstraints = document.getElementById('ps-constraints');
+const psMemory = document.getElementById('ps-memory');
 const requirementCard = document.getElementById('requirement-card');
 const requirementBadge = document.getElementById('requirement-badge');
 const requirementNote = document.getElementById('requirement-note');
@@ -2102,9 +2273,7 @@ const problemImageRemove = document.getElementById('problem-image-remove');
 
 let problemImageData = null; // { dataUrl, mediaType }
 
-problemHead.addEventListener('click', () => {
-  problemCard.classList.toggle('open');
-});
+problemHead.addEventListener('click', () => toggleSettingsCard(problemCard));
 
 function updateProblemStatus(){
   const hasText = !!problemTextInput.value.trim();
@@ -2122,6 +2291,7 @@ function updateProblemStatus(){
     problemStatus.textContent = 'Chưa có đề bài';
     problemStatus.classList.remove('ok');
   }
+  popStatusBadge(problemStatus);
 }
 
 function setProblemImageFromFile(file){
@@ -2131,7 +2301,11 @@ function setProblemImageFromFile(file){
     problemImageData = { dataUrl: reader.result, mediaType: file.type };
     problemImagePreview.src = reader.result;
     problemImagePreviewWrap.style.display = 'block';
-    problemCard.classList.add('open');
+    if(!problemCard.classList.contains('open')){
+      problemCard.classList.add('open');
+      staggerSettingsRows(problemCard);
+      wiggleIconBadge(problemCard);
+    }
     updateProblemStatus();
   };
   reader.readAsDataURL(file);
@@ -2199,16 +2373,45 @@ function loadSavedKey(){
     apiKeyInput.value = savedKey;
     keyStatus.textContent = 'Đã kết nối';
     keyStatus.classList.add('ok');
+    popStatusBadge(keyStatus);
   }
   if(savedModel){ modelSelect.value = savedModel; }
 }
 loadSavedKey();
 
-settingsHead.addEventListener('click', () => {
-  settingsCard.classList.toggle('open');
-});
+/* ---------- HIỆU ỨNG SỐNG ĐỘNG: icon lắc + nội dung xuất hiện lần lượt khi mở 1 khối settings ---------- */
+function popStatusBadge(el){
+  el.classList.remove('pop');
+  void el.offsetWidth;
+  el.classList.add('pop');
+}
+function staggerSettingsRows(card){
+  const inner = card.querySelector('.settings-body-inner');
+  if(!inner) return;
+  Array.from(inner.children).forEach((el, i) => {
+    el.classList.remove('row-pop');
+    void el.offsetWidth;
+    el.style.animationDelay = `${i * 0.06}s`;
+    el.classList.add('row-pop');
+  });
+}
+function wiggleIconBadge(card){
+  const badge = card.querySelector('.icon-badge');
+  if(!badge) return;
+  badge.classList.remove('wiggle');
+  void badge.offsetWidth;
+  badge.classList.add('wiggle');
+}
+function toggleSettingsCard(card){
+  const opening = !card.classList.contains('open');
+  card.classList.toggle('open');
+  wiggleIconBadge(card);
+  if(opening) staggerSettingsRows(card);
+}
+
+settingsHead.addEventListener('click', () => toggleSettingsCard(settingsCard));
 // Mở sẵn nếu chưa có key
-if(!localStorage.getItem(STORAGE_KEY)){ settingsCard.classList.add('open'); }
+if(!localStorage.getItem(STORAGE_KEY)){ settingsCard.classList.add('open'); staggerSettingsRows(settingsCard); }
 
 saveKeyBtn.addEventListener('click', () => {
   const key = getApiKey();
@@ -2216,6 +2419,7 @@ saveKeyBtn.addEventListener('click', () => {
   if(!key){
     keyStatus.textContent = 'Chưa có API key';
     keyStatus.classList.remove('ok');
+    popStatusBadge(keyStatus);
     return;
   }
   if(rememberKey.checked){
@@ -2226,6 +2430,7 @@ saveKeyBtn.addEventListener('click', () => {
   }
   keyStatus.textContent = 'Đã kết nối';
   keyStatus.classList.add('ok');
+  popStatusBadge(keyStatus);
   settingsCard.classList.remove('open');
 });
 
@@ -2438,6 +2643,26 @@ const HEALTH_LABELS = {
   style: 'Style',
   security: 'Security'
 };
+/* ---------- PROBLEM SUMMARY (tóm tắt đề bài AI vừa đọc) ---------- */
+function renderProblemSummary(ps){
+  if(!ps || typeof ps !== 'object'){
+    problemSummaryCard.classList.remove('show');
+    return;
+  }
+  psPattern.textContent = ps.pattern ? String(ps.pattern) : '—';
+  psFrequency.textContent = ps.frequency ? String(ps.frequency) : '—';
+  const diff = ps.difficulty ? String(ps.difficulty).trim() : '';
+  psDifficulty.textContent = diff || '—';
+  psDifficulty.classList.remove('easy','medium','hard');
+  if(/easy|dễ/i.test(diff)) psDifficulty.classList.add('easy');
+  else if(/medium|trung bình/i.test(diff)) psDifficulty.classList.add('medium');
+  else if(/hard|khó/i.test(diff)) psDifficulty.classList.add('hard');
+  psComplexity.textContent = ps.expected_complexity ? String(ps.expected_complexity) : '—';
+  psConstraints.textContent = ps.constraints ? String(ps.constraints) : '—';
+  psMemory.textContent = ps.memory_limit ? String(ps.memory_limit) : '—';
+  problemSummaryCard.classList.add('show');
+}
+
 /* ---------- ĐỐI CHIẾU ĐỀ BÀI ---------- */
 function renderRequirementCheck(match, note){
   if(match !== true && match !== false){
@@ -3085,7 +3310,15 @@ Nhiệm vụ của bạn:
     - 5 = Expert: kỹ thuật chuyên sâu/hiếm gặp, kết hợp nhiều cấu trúc nâng cao (vd persistent data structure, heavy-light decomposition, suffix automaton, FFT, thuật toán luồng nâng cao).
     Nếu code dùng một trong các kỹ thuật ở mức 4 (Segment Tree, Fenwick Tree, DP, Trie...), difficulty_level PHẢI tối thiểu là 4.
 13. Nếu có MỘT thuật toán/cấu trúc dữ liệu cụ thể, nổi bật là trung tâm của giải pháp (đặc biệt khi vừa được chọn/áp dụng trong lượt sửa lỗi này), hãy giải thích vì sao qua algorithm_reasoning gồm algorithm (tên) và reasons (mảng 2-4 lý do ngắn gọn, cụ thể, ưu tiên số liệu/Big-O thực tế, theo phong cách "Tra cứu O(1)", "Giảm từ O(n²) xuống O(n)"). Nếu không có lựa chọn thuật toán nào đủ nổi bật để giải thích riêng (vd chỉ sửa lỗi cú pháp đơn giản), để null.
-14. Trả lời CHỈ bằng một đối tượng JSON hợp lệ, không có markdown, không có \`\`\`, không có lời mở đầu, theo đúng định dạng sau:
+15. NẾU có đề bài được cung cấp (văn bản và/hoặc ảnh): sau khi đọc kỹ, trả thêm problem_summary — tóm tắt về ĐỀ BÀI (không phải về code), gồm:
+    - pattern: mẫu/kỹ thuật thuật toán chính mà đề bài đang hướng tới, dựa trên YÊU CẦU đề bài (vd "Sliding Window", "Two Pointers", "Dynamic Programming", "Binary Search", "Graph BFS/DFS", "Prefix Sum"...).
+    - frequency: tần suất dạng bài/pattern này xuất hiện trong đề thi lập trình/phỏng vấn, chỉ chọn đúng 1 trong: "Rất phổ biến", "Phổ biến", "Ít gặp", "Hiếm gặp".
+    - difficulty: độ khó CỦA ĐỀ BÀI (không phải của code), chỉ chọn đúng 1 trong: "Easy", "Medium", "Hard".
+    - expected_complexity: độ phức tạp thời gian kỳ vọng để giải đúng và tối ưu đề bài này, dạng Big-O (vd "O(n)", "O(n log n)").
+    - constraints: giới hạn kích thước input theo đề bài nêu rõ (vd "n ≤ 10^6"), null nếu đề bài không nêu.
+    - memory_limit: giới hạn bộ nhớ theo đề bài nêu rõ (vd "256MB"), null nếu đề bài không nêu.
+    NẾU KHÔNG có đề bài nào được cung cấp, để problem_summary = null — không tự bịa ra tóm tắt đề bài khi không có đề bài.
+16. Trả lời CHỈ bằng một đối tượng JSON hợp lệ, không có markdown, không có \`\`\`, không có lời mở đầu, theo đúng định dạng sau:
 
 {
   "has_errors": true hoặc false,
@@ -3138,8 +3371,17 @@ Nhiệm vụ của bạn:
     "reasons": ["vd Tra cứu O(1)", "vd Không cần sắp xếp", "vd Giảm từ O(n^2) xuống O(n)"]
   },
   "requirement_match": true, hoặc false, hoặc null nếu không có đề bài nào được cung cấp,
-  "requirement_note": "giải thích ngắn 1-2 câu bằng tiếng Việt vì sao code khớp/không khớp đề bài, dẫn chứng cụ thể (vd tên biến, phần yêu cầu bị thiếu). null nếu requirement_match = null."
+  "requirement_note": "giải thích ngắn 1-2 câu bằng tiếng Việt vì sao code khớp/không khớp đề bài, dẫn chứng cụ thể (vd tên biến, phần yêu cầu bị thiếu). null nếu requirement_match = null.",
+  "problem_summary": {
+    "pattern": "vd Sliding Window",
+    "frequency": "vd Phổ biến",
+    "difficulty": "vd Medium",
+    "expected_complexity": "vd O(n)",
+    "constraints": "vd n ≤ 10^6",
+    "memory_limit": "vd 256MB"
+  }
 }
+Trường "problem_summary" ở trên phải là null (không phải object rỗng) nếu không có đề bài nào được cung cấp trong tin nhắn.
 
 Nếu code không có lỗi gì: has_errors = false, issues = [] (mảng rỗng), fixed_code là chính code gốc giữ nguyên không đổi, và explanation nói rằng code đã đúng, không cần sửa. complexity_changed = false. score, category_scores, confidence_breakdown và health_report vẫn chấm bình thường theo chất lượng code hiện tại.
 Nếu code có lỗi: liệt kê TẤT CẢ lỗi tìm thấy vào mảng issues, sắp xếp theo độ nghiêm trọng giảm dần (critical trước, suggestion sau cùng).
@@ -3258,10 +3500,12 @@ async function fixCode(){
   reviewCard.classList.remove('show');
   metaCard.classList.remove('show');
   requirementCard.classList.remove('show');
-  startThinking();
+  problemSummaryCard.classList.remove('show');
 
   const problem = getProblemContext();
   const hasImage = !!problem.image;
+  const hasProblem = !!(problem.text || hasImage);
+  startThinking(hasProblem);
 
   try{
     // Khi có ảnh đề bài: nếu người dùng đã tự chọn 1 model hỗ trợ đọc ảnh (kể cả model trả phí) ở mục
@@ -3325,6 +3569,7 @@ async function fixCode(){
     lastOriginalCode = code;
     lastIssues = issues;
     renderIssues(issues);
+    renderProblemSummary(parsed.problem_summary || null);
     renderRequirementCheck(
       parsed.requirement_match === true || parsed.requirement_match === false ? parsed.requirement_match : null,
       parsed.requirement_note || ''
@@ -3383,7 +3628,7 @@ async function fixCode(){
 /* ---------- CÁC CARD KẾT QUẢ XUẤT HIỆN LẦN LƯỢT CHO SỐNG ĐỘNG ---------- */
 function staggerResultCards(){
   const order = [
-    requirementCard, document.querySelector('.diff-card'), document.querySelector('.explain-card'),
+    problemSummaryCard, requirementCard, document.querySelector('.diff-card'), document.querySelector('.explain-card'),
     scoreCard, healthCard, complexityCard, algoOptCallout, algoReasonCard, reviewCard, metaCard, optimizeCallout
   ];
   let i = 0;
