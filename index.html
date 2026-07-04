@@ -493,9 +493,42 @@ window.__CPP_HL = {
   .editor-tabs{
     display:flex;
     align-items:center;
+    justify-content: space-between;
     background: var(--panel-2);
     border-bottom: 1px solid var(--border);
-    padding: 0 12px;
+    padding: 0 8px 0 12px;
+  }
+  .editor-tabs-left{ display:flex; align-items:center; }
+  .sound-toggle{
+    display:flex; align-items:center; gap:6px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-dim);
+    font-family: var(--display);
+    font-size: 11.5px;
+    padding: 6px 10px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  }
+  .sound-toggle:hover{ color: var(--text); border-color: var(--border); background: var(--panel); }
+  .sound-toggle svg{ width: 15px; height: 15px; flex-shrink: 0; }
+  .sound-toggle.on{ color: var(--accent); }
+  .sound-toggle .bars{ display:flex; align-items:flex-end; gap:2px; height:11px; }
+  .sound-toggle .bar{
+    width: 2.5px;
+    background: currentColor;
+    border-radius: 1px;
+    opacity: 0.9;
+    transform-origin: bottom;
+    transition: transform 0.2s ease;
+  }
+  .sound-toggle.on .bar{ animation: soundBars 0.9s ease-in-out infinite; }
+  .sound-toggle .bar:nth-child(2){ animation-delay: 0.15s !important; }
+  .sound-toggle .bar:nth-child(3){ animation-delay: 0.3s !important; }
+  @keyframes soundBars{
+    0%,100%{ transform: scaleY(0.4); }
+    50%{ transform: scaleY(1); }
   }
   .tab{
     padding: 11px 16px;
@@ -1988,10 +2021,21 @@ window.__CPP_HL = {
 
   <div class="editor-card">
     <div class="editor-tabs">
-      <div class="tab active">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
-        main.cpp
+      <div class="editor-tabs-left">
+        <div class="tab active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>
+          main.cpp
+        </div>
       </div>
+      <button type="button" class="sound-toggle" id="sound-toggle" title="Bật/tắt tiếng gõ phím">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/></svg>
+        <span class="bars" aria-hidden="true">
+          <span class="bar" style="height:60%"></span>
+          <span class="bar" style="height:100%"></span>
+          <span class="bar" style="height:75%"></span>
+        </span>
+        <span id="sound-toggle-label">Tiếng gõ phím</span>
+      </button>
     </div>
     <div class="editor-body">
       <div class="line-gutter" id="line-gutter">1</div>
@@ -3948,6 +3992,84 @@ function burstConfetti(){
     piece.addEventListener('animationend', () => piece.remove());
   }
 }
+
+/* ---------- TIẾNG GÕ PHÍM (tạo âm thanh bằng Web Audio API, không cần file âm thanh ngoài) ---------- */
+const SOUND_STORAGE_KEY = 'cppfix_typing_sound';
+const soundToggle = document.getElementById('sound-toggle');
+const soundToggleLabel = document.getElementById('sound-toggle-label');
+let typingSoundEnabled = localStorage.getItem(SOUND_STORAGE_KEY) === 'on';
+let typingAudioCtx = null;
+
+function getTypingAudioCtx(){
+  if(!typingAudioCtx){
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(!Ctx) return null;
+    typingAudioCtx = new Ctx();
+  }
+  if(typingAudioCtx.state === 'suspended') typingAudioCtx.resume();
+  return typingAudioCtx;
+}
+
+// Tạo 1 tiếng "cạch" ngắn kiểu bàn phím cơ — mỗi lần gõ ngẫu nhiên hơi khác nhau cho tự nhiên
+function playKeySound(){
+  if(!typingSoundEnabled) return;
+  const ctx = getTypingAudioCtx();
+  if(!ctx) return;
+  const now = ctx.currentTime;
+
+  const duration = 0.045;
+  const bufferSize = Math.floor(ctx.sampleRate * duration);
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i = 0; i < bufferSize; i++){
+    const decay = Math.pow(1 - i / bufferSize, 3);
+    data[i] = (Math.random() * 2 - 1) * decay;
+  }
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+
+  const bandpass = ctx.createBiquadFilter();
+  bandpass.type = 'bandpass';
+  bandpass.frequency.value = 1500 + Math.random() * 1400;
+  bandpass.Q.value = 1.1;
+
+  const gain = ctx.createGain();
+  const peak = 0.16 + Math.random() * 0.05;
+  gain.gain.setValueAtTime(peak, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+  noise.connect(bandpass).connect(gain).connect(ctx.destination);
+  noise.start(now);
+  noise.stop(now + duration);
+}
+
+function updateSoundToggleUI(){
+  soundToggle.classList.toggle('on', typingSoundEnabled);
+  soundToggleLabel.textContent = typingSoundEnabled ? 'Tiếng gõ phím: Bật' : 'Tiếng gõ phím';
+}
+updateSoundToggleUI();
+
+soundToggle.addEventListener('click', () => {
+  typingSoundEnabled = !typingSoundEnabled;
+  localStorage.setItem(SOUND_STORAGE_KEY, typingSoundEnabled ? 'on' : 'off');
+  updateSoundToggleUI();
+  if(typingSoundEnabled){
+    getTypingAudioCtx();
+    playKeySound(); // phát thử 1 tiếng để người dùng biết đã bật
+  }
+});
+
+// Chỉ phát tiếng khi nội dung thực sự thay đổi do gõ phím (không phát khi paste/xoá hàng loạt hay khi AI tự điền)
+function attachTypingSound(el){
+  if(!el) return;
+  el.addEventListener('keydown', (e) => {
+    if(e.ctrlKey || e.metaKey || e.altKey) return;
+    const isCharKey = e.key.length === 1 || e.key === 'Enter' || e.key === 'Backspace' || e.key === 'Tab' || e.key === ' ';
+    if(isCharKey) playKeySound();
+  });
+}
+attachTypingSound(document.getElementById('code-input'));
+attachTypingSound(document.getElementById('problem-text-input'));
 
 /* ---------- HIỆU ỨNG RƠI: sinh ngẫu nhiên các ký tự code rơi trong nền ---------- */
 (function initCodeRain(){
