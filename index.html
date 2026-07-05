@@ -944,6 +944,62 @@ window.__CPP_HL = {
     font-size: 12.5px;
   }
 
+  /* ---------- AI GIẢI THÍCH: Phát hiện / Đã sửa / Kết quả ---------- */
+  .ai-explain{ display: none; }
+  .ai-explain.show{ display: block; }
+  .ai-explain-section{ margin-top: 14px; }
+  .ai-explain-section:first-child{ margin-top: 0; }
+  .ai-explain-label{
+    font-family: var(--display);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ai-explain-detect .ai-explain-label{ color: var(--amber); }
+  .ai-explain-fixed .ai-explain-label{ color: var(--accent); }
+  .ai-explain-result .ai-explain-label{ color: var(--blue); }
+  .ai-explain-strengths .ai-explain-label{ color: var(--accent); }
+  .ai-explain-improve .ai-explain-label{ color: var(--amber); }
+  .ai-explain-list{ list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  .ai-explain-item{
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--text);
+    opacity: 0;
+    animation: aiExplainItemIn 0.4s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  @keyframes aiExplainItemIn{
+    from{ opacity: 0; transform: translateX(-8px); }
+    to{ opacity: 1; transform: translateX(0); }
+  }
+  .ai-explain-item .marker{ flex-shrink: 0; font-weight: 700; line-height: 1.5; }
+  .ai-explain-detect .ai-explain-item .marker{ color: var(--amber); }
+  .ai-explain-fixed .ai-explain-item .marker{ color: var(--accent); }
+  .ai-explain-strengths .ai-explain-item .marker{ color: var(--accent); }
+  .ai-explain-improve .ai-explain-item .marker{ color: var(--amber); }
+  .ai-explain-result-box{
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--text);
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: rgba(122,209,255,0.07);
+    border: 1px solid rgba(122,209,255,0.25);
+  }
+  .ai-explain-divider{
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+  }
+
   /* ---------- ISSUE SEVERITY LIST ---------- */
   .issue-list{ margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
   .issue-item{
@@ -2168,7 +2224,30 @@ int main() {
       </div>
 
       <div class="explain-card">
-        <h3>AI giải thích</h3>
+        <h3>🔍 AI Giải thích</h3>
+        <div class="ai-explain" id="ai-explain">
+          <div class="ai-explain-section ai-explain-detect" id="ai-explain-detect-section">
+            <div class="ai-explain-label">Phát hiện</div>
+            <ul class="ai-explain-list" id="ai-explain-detect-list"></ul>
+          </div>
+          <div class="ai-explain-section ai-explain-fixed" id="ai-explain-fixed-section">
+            <div class="ai-explain-label">Đã sửa</div>
+            <ul class="ai-explain-list" id="ai-explain-fixed-list"></ul>
+          </div>
+          <div class="ai-explain-section ai-explain-result" id="ai-explain-result-section">
+            <div class="ai-explain-label">Kết quả</div>
+            <div class="ai-explain-result-box" id="ai-explain-result-text"></div>
+          </div>
+          <div class="ai-explain-section ai-explain-strengths" id="ai-explain-strengths-section">
+            <div class="ai-explain-label">Ưu điểm</div>
+            <ul class="ai-explain-list" id="ai-explain-strengths-list"></ul>
+          </div>
+          <div class="ai-explain-section ai-explain-improve" id="ai-explain-improve-section">
+            <div class="ai-explain-label">Điểm cần cải thiện</div>
+            <ul class="ai-explain-list" id="ai-explain-improve-list"></ul>
+          </div>
+        </div>
+        <div class="ai-explain-divider" id="ai-explain-divider" style="display:none;"></div>
         <div class="body-text" id="explain-text"></div>
         <div class="issue-summary" id="issue-summary"></div>
         <div class="issue-list" id="issue-list"></div>
@@ -2420,6 +2499,18 @@ function stopThinking(){
 }
 const fixedCodeEl = document.getElementById('fixed-code');
 const explainText = document.getElementById('explain-text');
+const aiExplain = document.getElementById('ai-explain');
+const aiExplainDivider = document.getElementById('ai-explain-divider');
+const aiExplainDetectSection = document.getElementById('ai-explain-detect-section');
+const aiExplainDetectList = document.getElementById('ai-explain-detect-list');
+const aiExplainFixedSection = document.getElementById('ai-explain-fixed-section');
+const aiExplainFixedList = document.getElementById('ai-explain-fixed-list');
+const aiExplainResultSection = document.getElementById('ai-explain-result-section');
+const aiExplainResultText = document.getElementById('ai-explain-result-text');
+const aiExplainStrengthsSection = document.getElementById('ai-explain-strengths-section');
+const aiExplainStrengthsList = document.getElementById('ai-explain-strengths-list');
+const aiExplainImproveSection = document.getElementById('ai-explain-improve-section');
+const aiExplainImproveList = document.getElementById('ai-explain-improve-list');
 const problemSummaryCard = document.getElementById('problem-summary-card');
 const psPattern = document.getElementById('ps-pattern');
 const psFrequency = document.getElementById('ps-frequency');
@@ -2757,6 +2848,53 @@ const SEV_META = {
   suggestion: { label: '🔵 Suggestion', icon: '🔵' },
 };
 const SEV_ORDER = ['critical', 'logic', 'warning', 'suggestion'];
+
+/* ---------- AI GIẢI THÍCH: Phát hiện / Đã sửa / Kết quả / Ưu điểm / Điểm cần cải thiện ---------- */
+function renderAIExplain(findings, fixes, result, strengths, improvements){
+  const hasFindings = Array.isArray(findings) && findings.length > 0;
+  const hasFixes = Array.isArray(fixes) && fixes.length > 0;
+  const hasResult = !!(result && String(result).trim());
+  const hasStrengths = Array.isArray(strengths) && strengths.length > 0;
+  const hasImprovements = Array.isArray(improvements) && improvements.length > 0;
+
+  if(!hasFindings && !hasFixes && !hasResult && !hasStrengths && !hasImprovements){
+    aiExplain.classList.remove('show');
+    aiExplainDivider.style.display = 'none';
+    return;
+  }
+
+  aiExplainDetectSection.style.display = hasFindings ? '' : 'none';
+  aiExplainDetectList.innerHTML = hasFindings ? findings.map((t, i) => `
+    <li class="ai-explain-item" style="animation-delay:${i * 0.06}s">
+      <span class="marker">•</span><span>${escapeHtml(String(t))}</span>
+    </li>`).join('') : '';
+
+  aiExplainFixedSection.style.display = hasFixes ? '' : 'none';
+  aiExplainFixedList.innerHTML = hasFixes ? fixes.map((t, i) => `
+    <li class="ai-explain-item" style="animation-delay:${(hasFindings ? findings.length : 0) * 0.06 + i * 0.06}s">
+      <span class="marker">✓</span><span>${escapeHtml(String(t))}</span>
+    </li>`).join('') : '';
+
+  aiExplainResultSection.style.display = hasResult ? '' : 'none';
+  aiExplainResultText.textContent = hasResult ? String(result) : '';
+
+  const prevCount = (hasFindings ? findings.length : 0) + (hasFixes ? fixes.length : 0);
+  aiExplainStrengthsSection.style.display = hasStrengths ? '' : 'none';
+  aiExplainStrengthsList.innerHTML = hasStrengths ? strengths.map((t, i) => `
+    <li class="ai-explain-item" style="animation-delay:${prevCount * 0.06 + i * 0.06}s">
+      <span class="marker">✓</span><span>${escapeHtml(String(t))}</span>
+    </li>`).join('') : '';
+
+  aiExplainImproveSection.style.display = hasImprovements ? '' : 'none';
+  aiExplainImproveList.innerHTML = hasImprovements ? improvements.map((t, i) => `
+    <li class="ai-explain-item" style="animation-delay:${(prevCount + (hasStrengths ? strengths.length : 0)) * 0.06 + i * 0.06}s">
+      <span class="marker">•</span><span>${escapeHtml(String(t))}</span>
+    </li>`).join('') : '';
+
+  aiExplain.classList.add('show');
+  // Có nội dung cấu trúc rồi thì hiện gạch phân cách trước phần tóm tắt tổng quan ngắn (body-text) bên dưới, nếu có
+  aiExplainDivider.style.display = (explainText.textContent.trim() ? '' : 'none');
+}
 
 function renderIssues(issues){
   issueList.innerHTML = '';
@@ -3598,6 +3736,13 @@ Nhiệm vụ của bạn:
     - 5 = Expert: kỹ thuật chuyên sâu/hiếm gặp, kết hợp nhiều cấu trúc nâng cao (vd persistent data structure, heavy-light decomposition, suffix automaton, FFT, thuật toán luồng nâng cao).
     Nếu code dùng một trong các kỹ thuật ở mức 4 (Segment Tree, Fenwick Tree, DP, Trie...), difficulty_level PHẢI tối thiểu là 4.
 13. Nếu có MỘT thuật toán/cấu trúc dữ liệu cụ thể, nổi bật là trung tâm của giải pháp (đặc biệt khi vừa được chọn/áp dụng trong lượt sửa lỗi này), hãy giải thích vì sao qua algorithm_reasoning gồm algorithm (tên) và reasons (mảng 2-4 lý do ngắn gọn, cụ thể, ưu tiên số liệu/Big-O thực tế, theo phong cách "Tra cứu O(1)", "Giảm từ O(n²) xuống O(n)"). Nếu không có lựa chọn thuật toán nào đủ nổi bật để giải thích riêng (vd chỉ sửa lỗi cú pháp đơn giản), để null.
+14. Viết thêm ai_explain — bản giải thích trình bày theo cấu trúc 3 phần NGẮN GỌN, dễ đọc lướt (khác với "issues" vốn đã liệt kê chi tiết từng lỗi riêng lẻ, ở đây chỉ nêu Ý CHÍNH):
+    - findings: mảng 0-4 gạch đầu dòng ngắn (mỗi dòng 1 câu ngắn, KHÔNG tự thêm dấu "•"), mô tả các VẤN ĐỀ/RỦI RO chính đã phát hiện trong code TRƯỚC khi sửa (vd "Mảng tĩnh 2D có thể gây vấn đề trên một số Online Judge.").
+    - fixes: mảng 0-5 gạch đầu dòng ngắn (mỗi dòng 1 câu ngắn, KHÔNG tự thêm dấu "✓"), mô tả các THAY ĐỔI CỤ THỂ đã áp dụng để sửa, ưu tiên bắt đầu bằng động từ (vd "Chuyển sang vector 1-D (heap allocation).", "Dùng int cho chỉ số.", "Giữ điều kiện kiểm tra đầy đủ trước khi duyệt cạnh.", "Vẫn giữ độ phức tạp O(m × n).").
+    - result: MỘT đoạn 1-2 câu ngắn gọn bằng tiếng Việt tổng kết kết quả sau khi sửa (vd "Code an toàn hơn, không thay đổi thuật toán và đã vượt qua các test.").
+    - strengths: mảng 0-4 gạch đầu dòng ngắn (KHÔNG tự thêm dấu "✓"), nêu các ĐIỂM MẠNH cụ thể của code SAU KHI ĐÃ SỬA (vd "Logic rõ ràng", "Độ phức tạp tối ưu", "Không phát hiện lỗi Runtime"). Chỉ liệt kê điểm thực sự nổi bật, không bịa ra nếu code chỉ ở mức bình thường.
+    - improvements: mảng 0-4 gạch đầu dòng ngắn (KHÔNG tự thêm dấu "•"), nêu các ĐIỂM CÒN CÓ THỂ CẢI THIỆN THÊM ở code sau khi sửa dù không phải lỗi (vd "Có thể dùng vector thay cho mảng tĩnh."). Nếu code đã ổn, để mảng rỗng — không cố bịa ra điểm cần cải thiện.
+    Nếu code hầu như không có vấn đề gì để sửa, vẫn có thể để findings/fixes là mảng rỗng và chỉ điền result mô tả code đã tốt. KHÔNG lặp lại y nguyên nội dung đã có trong "issues" hay "explanation" — ai_explain chỉ nêu các ý CHÍNH, cô đọng nhất.
 15. NẾU có đề bài được cung cấp (văn bản và/hoặc ảnh): sau khi đọc kỹ, trả thêm problem_summary — tóm tắt về ĐỀ BÀI (không phải về code), gồm:
     - pattern: mẫu/kỹ thuật thuật toán chính mà đề bài đang hướng tới, dựa trên YÊU CẦU đề bài (vd "Sliding Window", "Two Pointers", "Dynamic Programming", "Binary Search", "Graph BFS/DFS", "Prefix Sum"...).
     - frequency: tần suất dạng bài/pattern này xuất hiện trong đề thi lập trình/phỏng vấn, chỉ chọn đúng 1 trong: "Rất phổ biến", "Phổ biến", "Ít gặp", "Hiếm gặp".
@@ -3622,6 +3767,13 @@ Nhiệm vụ của bạn:
   ],
   "fixed_code": "TOÀN BỘ code C++ sau khi đã sửa, dạng văn bản thuần (PLAIN TEXT, không có tiền tố '+'/'-' gì cả, không phải định dạng diff). Phải là code đầy đủ, hoàn chỉnh, biên dịch được, đúng định dạng/thụt lề chuẩn. Mỗi dòng cách nhau bằng \\n.",
   "explanation": "tóm tắt tổng quan ngắn 1-2 câu bằng tiếng Việt về tình trạng chung của code (chi tiết từng lỗi đã có trong issues, không lặp lại ở đây).",
+  "ai_explain": {
+    "findings": ["vd Mảng tĩnh 2D có thể gây vấn đề trên một số Online Judge.", "vd long long được dùng cho chỉ số là không cần thiết."],
+    "fixes": ["vd Chuyển sang vector 1-D (heap allocation).", "vd Dùng int cho chỉ số.", "vd Vẫn giữ độ phức tạp O(m × n)."],
+    "result": "vd Code an toàn hơn, không thay đổi thuật toán và đã vượt qua các test.",
+    "strengths": ["vd Logic rõ ràng", "vd Độ phức tạp tối ưu", "vd Không phát hiện lỗi Runtime"],
+    "improvements": ["vd Có thể dùng vector thay cho mảng tĩnh."]
+  },
   "complexity_changed": true hoặc false,
   "complexity_before": "ví dụ O(n^2), null nếu complexity_changed = false",
   "complexity_after": "ví dụ O(n), null nếu complexity_changed = false",
@@ -3805,6 +3957,8 @@ async function fixCode(){
   requirementCard.classList.remove('show');
   problemSummaryCard.classList.remove('show');
   tleCallout.classList.remove('show','risk-tle','risk-risky','risk-ok');
+  aiExplain.classList.remove('show');
+  aiExplainDivider.style.display = 'none';
 
   const problem = getProblemContext();
   const hasImage = !!problem.image;
@@ -3904,6 +4058,13 @@ async function fixCode(){
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/`(.+?)`/g, '<code>$1</code>');
     explainText.innerHTML = explainHtml;
+    renderAIExplain(
+      parsed.ai_explain ? parsed.ai_explain.findings : null,
+      parsed.ai_explain ? parsed.ai_explain.fixes : null,
+      parsed.ai_explain ? parsed.ai_explain.result : null,
+      parsed.ai_explain ? parsed.ai_explain.strengths : null,
+      parsed.ai_explain ? parsed.ai_explain.improvements : null
+    );
 
     staggerResultCards();
 
