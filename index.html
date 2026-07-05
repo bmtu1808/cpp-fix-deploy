@@ -693,6 +693,25 @@ window.__CPP_HL = {
     background: var(--panel-2);
     transition: color 0.2s ease, border-color 0.2s ease;
   }
+  .thinking-head-right{ display: flex; align-items: center; gap: 8px; }
+  .cancel-fix-btn{
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--display);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dim);
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 3px 9px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  }
+  .cancel-fix-btn svg{ width: 11px; height: 11px; }
+  .cancel-fix-btn:hover{ color: var(--red); border-color: rgba(244,113,116,0.4); background: rgba(244,113,116,0.08); }
+  .cancel-fix-btn:active{ transform: scale(0.94); }
   .thinking-step{
     display:flex;
     align-items:center;
@@ -1745,6 +1764,26 @@ window.__CPP_HL = {
     z-index: 999;
     box-shadow: 0 0 8px rgba(95,208,104,0.5);
   }
+  .mini-toast{
+    position: fixed;
+    bottom: 26px;
+    left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 30px;
+    box-shadow: 0 16px 34px -12px rgba(0,0,0,0.45);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 998;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+  }
+  .mini-toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
   @keyframes scrollRevealIn{
     from{ opacity: 0; transform: translateY(30px); }
     to{ opacity: 1; transform: translateY(0); }
@@ -1967,6 +2006,7 @@ window.__CPP_HL = {
 </head>
 <body>
 <div class="scroll-progress" id="scroll-progress"></div>
+<div class="mini-toast" id="mini-toast"></div>
 <div class="code-rain" id="code-rain" aria-hidden="true"></div>
 <div class="glow glow-1"></div>
 <div class="glow glow-2"></div>
@@ -2128,7 +2168,13 @@ int main() {
   <div class="thinking-card" id="thinking-card">
     <div class="thinking-head">
       <span class="thinking-head-label">AI đang phân tích<span class="thinking-dots"><span>.</span><span>.</span><span>.</span></span></span>
-      <span class="thinking-elapsed" id="thinking-elapsed">0.0s</span>
+      <span class="thinking-head-right">
+        <span class="thinking-elapsed" id="thinking-elapsed">0.0s</span>
+        <button type="button" class="cancel-fix-btn" id="cancel-fix-btn" title="Hủy sửa lỗi với AI">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          Hủy
+        </button>
+      </span>
     </div>
     <div class="thinking-step" data-step="0">
       <span class="icon"><span class="dash"></span></span>
@@ -2496,6 +2542,12 @@ function stopThinking(){
     el.querySelector('.icon').innerHTML = ICON_CHECK;
   });
   setTimeout(() => { thinkingCard.classList.remove('show'); }, 350);
+}
+// Dùng khi người dùng chủ động bấm Hủy — ẩn ngay, không đánh dấu các bước như đã hoàn thành
+function cancelThinking(){
+  if(thinkingTimer) clearInterval(thinkingTimer);
+  clearInterval(thinkingElapsedTimer);
+  thinkingCard.classList.remove('show');
 }
 const fixedCodeEl = document.getElementById('fixed-code');
 const explainText = document.getElementById('explain-text');
@@ -3870,7 +3922,7 @@ const KNOWN_VISION_MODELS = new Set([
   'google/gemini-2.5-flash-lite',
 ]);
 
-async function callOpenRouter(apiKey, model, messages){
+async function callOpenRouter(apiKey, model, messages, signal){
   const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -3883,7 +3935,8 @@ async function callOpenRouter(apiKey, model, messages){
       model,
       temperature: 0.2,
       messages
-    })
+    }),
+    signal
   });
 
   let data = null;
@@ -3902,28 +3955,46 @@ async function callOpenRouter(apiKey, model, messages){
   return text;
 }
 
-async function callWithFallback(apiKey, primaryModel, messages, fallbackList){
+async function callWithFallback(apiKey, primaryModel, messages, fallbackList, signal){
   const list = fallbackList || FALLBACK_MODELS;
   const rememberSelection = !fallbackList; // chỉ ghi đè lựa chọn model của người dùng khi dùng chuỗi fallback mặc định (không phải vision)
   const tried = [];
   try {
-    return await callOpenRouter(apiKey, primaryModel, messages);
+    return await callOpenRouter(apiKey, primaryModel, messages, signal);
   } catch(err) {
+    if(err.name === 'AbortError') throw err; // người dùng đã bấm Hủy — dừng ngay, không thử fallback nữa
     tried.push(err.message || String(err));
     const fallbacks = list.filter(m => m !== primaryModel);
     for(const fb of fallbacks){
       try {
-        const result = await callOpenRouter(apiKey, fb, messages);
+        const result = await callOpenRouter(apiKey, fb, messages, signal);
         if(rememberSelection){
           modelSelect.value = fb;
           localStorage.setItem(STORAGE_MODEL, fb);
         }
         return result;
-      } catch(e){ tried.push(e.message || String(e)); }
+      } catch(e){
+        if(e.name === 'AbortError') throw e;
+        tried.push(e.message || String(e));
+      }
     }
     throw new Error('Đã thử tất cả model free nhưng đều lỗi:\n' + tried.join('\n'));
   }
 }
+
+let activeFixController = null;
+const cancelFixBtn = document.getElementById('cancel-fix-btn');
+const miniToast = document.getElementById('mini-toast');
+let miniToastTimer = null;
+function showToast(msg){
+  miniToast.textContent = msg;
+  miniToast.classList.add('show');
+  clearTimeout(miniToastTimer);
+  miniToastTimer = setTimeout(() => miniToast.classList.remove('show'), 2200);
+}
+cancelFixBtn.addEventListener('click', () => {
+  if(activeFixController) activeFixController.abort();
+});
 
 async function fixCode(){
   const code = codeInput.value.trim();
@@ -3965,6 +4036,10 @@ async function fixCode(){
   const hasProblem = !!(problem.text || hasImage);
   startThinking(hasProblem);
 
+  activeFixController = new AbortController();
+  const { signal } = activeFixController;
+  let wasCancelled = false;
+
   try{
     // Khi có ảnh đề bài: nếu người dùng đã tự chọn 1 model hỗ trợ đọc ảnh (kể cả model trả phí) ở mục
     // "Kết nối AI", dùng đúng model đó làm lựa chọn chính. Ngược lại (đang chọn model chữ thuần mặc định),
@@ -3995,8 +4070,8 @@ async function fixCode(){
       { role: 'user', content: userContent }
     ];
     const rawText = hasImage
-      ? await callWithFallback(apiKey, model, messages, VISION_FALLBACK_MODELS)
-      : await callWithFallback(apiKey, model, messages);
+      ? await callWithFallback(apiKey, model, messages, VISION_FALLBACK_MODELS, signal)
+      : await callWithFallback(apiKey, model, messages, null, signal);
     const cleaned = rawText.replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
 
     let parsed;
@@ -4069,6 +4144,10 @@ async function fixCode(){
     staggerResultCards();
 
   }catch(err){
+    if(err && err.name === 'AbortError'){
+      wasCancelled = true;
+      showToast('Đã hủy sửa lỗi với AI.');
+    } else {
     successView.style.display = 'none';
     errorView.style.display = 'block';
     statusDot.className = 'status-dot err';
@@ -4082,12 +4161,20 @@ async function fixCode(){
       msg += '\n\nGợi ý: các model/router hỗ trợ đọc ảnh miễn phí đôi khi quá tải. Hãy thử lại sau ít phút, hoặc tạm thời xoá ảnh và gõ/dán lại đề bài dạng văn bản ở mục "Đề bài" để chắc chắn AI phân tích được ngay.';
     }
     errorText.textContent = msg;
+    }
   } finally{
-    stopThinking();
+    activeFixController = null;
+    if(wasCancelled){
+      cancelThinking();
+    } else {
+      stopThinking();
+    }
     fixBtn.disabled = false;
     fixBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Sửa lỗi với AI`;
-    result.classList.add('show');
-    result.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    if(!wasCancelled){
+      result.classList.add('show');
+      result.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }
   }
 }
 
