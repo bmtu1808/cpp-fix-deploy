@@ -239,6 +239,88 @@ window.__CPP_HL = {
     letter-spacing: 0.04em;
   }
 
+  .topbar-right{ display: flex; align-items: center; gap: 10px; }
+  .history-btn{
+    display: flex; align-items: center; gap: 6px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  }
+  .history-btn svg{ width: 14px; height: 14px; }
+  .history-btn:hover{ color: var(--blue); border-color: rgba(122,209,255,0.35); background: rgba(122,209,255,0.08); }
+  .history-btn-label{ display: none; }
+  @media (min-width: 560px){ .history-btn-label{ display: inline; } }
+
+  .account-area{ display: flex; align-items: center; }
+  .google-login-btn{
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 14px 7px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  }
+  .google-login-btn:hover{ border-color: var(--text-dim); transform: translateY(-1px); box-shadow: 0 8px 18px -12px rgba(0,0,0,0.5); }
+  .github-login-btn{
+    display: flex; align-items: center; gap: 7px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 14px 7px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  }
+  .github-login-btn:hover{ border-color: var(--text-dim); transform: translateY(-1px); box-shadow: 0 8px 18px -12px rgba(0,0,0,0.5); }
+  .account-config-btn{
+    display: flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: color 0.3s ease, border-color 0.2s ease, transform 0.3s ease;
+  }
+  .account-config-btn svg{ width: 14px; height: 14px; }
+  .account-config-btn:hover{ color: var(--text); transform: rotate(45deg); }
+  .user-chip{
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    padding: 4px 8px 4px 4px;
+    border-radius: 20px;
+  }
+  .user-avatar{ width: 24px; height: 24px; border-radius: 50%; object-fit: cover; background: var(--panel); }
+  .user-name{ font-family: var(--display); font-size: 12px; font-weight: 600; color: var(--text); max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .user-logout-btn{
+    display: flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease;
+  }
+  .user-logout-btn svg{ width: 13px; height: 13px; }
+  .user-logout-btn:hover{ color: var(--red); background: rgba(244,113,116,0.1); }
+
   /* ---------- HERO ---------- */
   .hero{
     padding: 56px 0 28px;
@@ -1784,6 +1866,140 @@ window.__CPP_HL = {
     transition: opacity 0.25s ease, transform 0.25s ease;
   }
   .mini-toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ---------- MODAL DÙNG CHUNG (cấu hình Google + Lịch sử) ---------- */
+  .modal-backdrop{
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,12,15,0.6);
+    backdrop-filter: blur(2px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-backdrop.show{ display: flex; animation: fadeInBackdrop 0.2s ease both; }
+  @keyframes fadeInBackdrop{ from{ opacity: 0; } to{ opacity: 1; } }
+  .modal-box{
+    width: min(480px, 92vw);
+    max-height: 86vh;
+    overflow-y: auto;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    animation: riseIn 0.3s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .modal-box h3{ font-family: var(--display); font-size: 16px; margin-bottom: 10px; }
+  .modal-note{ font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 14px; }
+  .modal-steps{ font-size: 12.5px; color: var(--text-dim); line-height: 1.9; padding-left: 18px; margin-bottom: 16px; }
+  .modal-steps a{ color: var(--blue); }
+  .modal-steps code{ background: var(--panel-2); border: 1px solid var(--border); padding: 1px 5px; border-radius: 4px; }
+  .modal-input{
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12.5px;
+    padding: 10px 12px;
+    border-radius: 7px;
+    outline: none;
+    margin-bottom: 16px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .modal-input:focus{ border-color: var(--blue); box-shadow: 0 0 0 3px rgba(122,209,255,0.13); }
+  .modal-actions{ display: flex; justify-content: flex-end; gap: 10px; }
+  .modal-btn-secondary, .modal-btn-primary{
+    font-family: var(--display);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 9px 16px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
+  }
+  .modal-btn-secondary{ background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
+  .modal-btn-secondary:hover{ color: var(--text); border-color: var(--text-dim); }
+  .modal-btn-primary{ background: var(--accent); border: 1px solid var(--accent); color: #0c1410; }
+  .modal-btn-primary:hover{ transform: translateY(-1px); }
+  .modal-close-x{
+    display: flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease;
+  }
+  .modal-close-x svg{ width: 13px; height: 13px; }
+  .modal-close-x:hover{ color: var(--red); background: rgba(244,113,116,0.1); }
+
+  /* ---------- PANEL LỊCH SỬ ---------- */
+  #history-backdrop{ justify-content: flex-end; align-items: stretch; }
+  .history-panel{
+    width: min(380px, 92vw);
+    height: 100%;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    animation: historySlideIn 0.3s cubic-bezier(0.22,1,0.36,1) both;
+    overflow-y: auto;
+  }
+  @keyframes historySlideIn{ from{ transform: translateX(100%); } to{ transform: translateX(0); } }
+  .history-panel-head{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .history-panel-head h3{ font-family: var(--display); font-size: 15px; }
+  .history-panel-note{ font-size: 11.5px; color: var(--text-dim); line-height: 1.6; margin-bottom: 16px; }
+  .history-list{ display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .history-empty{ display: none; text-align: center; font-size: 13px; color: var(--text-dim); padding: 30px 10px; }
+  .history-item{
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 12px 14px;
+    background: var(--panel-2);
+    animation: rowPop 0.35s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .history-item-top{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .history-item-time{ font-size: 11px; color: var(--text-dim); }
+  .history-item-badge{
+    font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+  .history-item-badge.ok{ color: var(--accent); border-color: var(--accent-dim); background: rgba(95,208,104,0.08); }
+  .history-item-badge.err{ color: var(--red); border-color: rgba(244,113,116,0.35); background: rgba(244,113,116,0.08); }
+  .history-item-summary{ font-size: 12.5px; color: var(--text); line-height: 1.5; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .history-item-actions{ display: flex; gap: 8px; }
+  .history-item-btn{
+    flex: 1;
+    font-family: var(--display);
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+  }
+  .history-restore-btn{ background: transparent; border: 1px solid var(--accent-dim); color: var(--accent); }
+  .history-restore-btn:hover{ background: rgba(95,208,104,0.1); }
+  .history-delete-btn{ background: transparent; border: 1px solid var(--border); color: var(--text-dim); }
+  .history-delete-btn:hover{ border-color: rgba(244,113,116,0.4); color: var(--red); }
+  .history-clear-btn{
+    margin-top: 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: var(--display);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 9px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  .history-clear-btn:hover{ border-color: rgba(244,113,116,0.4); color: var(--red); }
   @keyframes scrollRevealIn{
     from{ opacity: 0; transform: translateY(30px); }
     to{ opacity: 1; transform: translateY(0); }
@@ -1854,6 +2070,12 @@ window.__CPP_HL = {
     .line-gutter{ width: 36px; min-width: 36px; font-size: 12.5px; padding-right: 6px; }
     textarea#code-input{ font-size: 12.5px; padding: 16px; }
     pre#highlight-layer{ font-size: 12.5px; padding: 16px; }
+    .badge-free{ display: none; }
+    .user-name{ max-width: 60px; }
+    .google-login-btn span{ display: none; }
+    .google-login-btn{ padding: 8px; }
+    .github-login-btn span{ display: none; }
+    .github-login-btn{ padding: 8px; }
   }
 
   /* ================= THÊM CHUYỂN ĐỘNG CHO SINH ĐỘNG ================= */
@@ -2003,6 +2225,7 @@ window.__CPP_HL = {
     }
   }
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <div class="scroll-progress" id="scroll-progress"></div>
@@ -2019,7 +2242,33 @@ window.__CPP_HL = {
       <div class="dot-cluster"><span class="dot r"></span><span class="dot a"></span><span class="dot g"></span></div>
       cppfix<span style="color:var(--text-dim); font-weight:400;">.ai</span>
     </div>
-    <div class="badge-free">100% MIỄN PHÍ</div>
+    <div class="topbar-right">
+      <div class="badge-free">100% MIỄN PHÍ</div>
+      <button type="button" class="history-btn" id="history-btn" title="Lịch sử phân tích (lưu trên máy này)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+        <span class="history-btn-label">Lịch sử</span>
+      </button>
+      <div class="account-area" id="account-area">
+        <button type="button" class="google-login-btn" id="google-login-btn">
+          <svg viewBox="0 0 48 48" width="15" height="15"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l6-6C34.6 5.1 29.6 3 24 3 12.4 3 3 12.4 3 24s9.4 21 21 21 21-9.4 21-21c0-1.4-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.8 1.1 8 3l6-6C34.6 5.1 29.6 3 24 3 16.3 3 9.6 7.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 45c5.5 0 10.4-1.9 14.3-5.1l-6.6-5.6C29.6 35.6 26.9 36.5 24 36.5c-5.3 0-9.7-3.4-11.3-8.1l-6.6 5.1C9.5 40.6 16.2 45 24 45z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.7l6.6 5.6C41.4 36 45 30.5 45 24c0-1.4-.1-2.7-.4-3.5z"/></svg>
+          <span>Google</span>
+        </button>
+        <button type="button" class="github-login-btn" id="github-login-btn">
+          <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          <span>GitHub</span>
+        </button>
+        <button type="button" class="account-config-btn" id="account-config-btn" title="Cấu hình đăng nhập (Backend URL / Google Client ID)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <div class="user-chip" id="user-chip" style="display:none;">
+          <img id="user-avatar" class="user-avatar" alt="">
+          <span class="user-name" id="user-name-label"></span>
+          <button type="button" class="user-logout-btn" id="user-logout-btn" title="Đăng xuất">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2465,6 +2714,46 @@ int main() {
     <span>Key & code chỉ lưu trên máy bạn, không qua server nào của trang này</span>
   </footer>
 
+</div>
+
+<!-- ---------- MODAL: cấu hình đăng nhập & đồng bộ ---------- -->
+<div class="modal-backdrop" id="google-setup-backdrop">
+  <div class="modal-box">
+    <h3>Cấu hình đăng nhập & đồng bộ</h3>
+    <p class="modal-note">
+      Trang này là 1 file tĩnh, không tự có server. Có 2 phần cấu hình <b>độc lập</b> — điền phần nào bạn cần:
+    </p>
+    <p class="modal-note" style="margin-bottom:6px;"><b>① Backend API URL</b> (tuỳ chọn) — cần nếu muốn <b>đăng nhập GitHub</b> hoặc muốn lịch sử <b>đồng bộ thật giữa các thiết bị</b>. Đây là URL sau khi bạn deploy backend đi kèm (xem file <code>README.md</code> trong gói backend).</p>
+    <input type="text" id="backend-url-input" class="modal-input" placeholder="vd: https://cppfix-backend.yourname.workers.dev">
+    <p class="modal-note" style="margin-bottom:6px;"><b>② Google Client ID</b> — cần để nút "Đăng nhập Google" hoạt động (kể cả khi không dùng backend, chỉ để hiện tên/ảnh cục bộ).</p>
+    <ol class="modal-steps">
+      <li>Vào <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console → Credentials</a>.</li>
+      <li>Tạo "OAuth client ID" → loại <b>Web application</b>.</li>
+      <li>Ở mục "Authorized JavaScript origins", thêm đúng địa chỉ bạn đang mở trang này (vd <code id="modal-origin-hint"></code>).</li>
+      <li>Dán "Client ID" (dạng <code>....apps.googleusercontent.com</code>) vào ô bên dưới.</li>
+    </ol>
+    <input type="text" id="google-client-id-input" class="modal-input" placeholder="vd: 1234567890-abc...apps.googleusercontent.com">
+    <div class="modal-actions">
+      <button type="button" class="modal-btn-secondary" id="google-setup-cancel">Đóng</button>
+      <button type="button" class="modal-btn-primary" id="google-setup-save">Lưu cấu hình</button>
+    </div>
+  </div>
+</div>
+
+<!-- ---------- PANEL: Lịch sử phân tích ---------- -->
+<div class="modal-backdrop" id="history-backdrop">
+  <div class="history-panel">
+    <div class="history-panel-head">
+      <h3 id="history-panel-title">Lịch sử phân tích</h3>
+      <button type="button" class="modal-close-x" id="history-close-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <p class="history-panel-note">Chỉ lưu trên trình duyệt này (localStorage) — không đồng bộ giữa các thiết bị khác nhau. Tối đa 30 lượt gần nhất.</p>
+    <div class="history-list" id="history-list"></div>
+    <div class="history-empty" id="history-empty">Chưa có lượt phân tích nào được lưu.</div>
+    <button type="button" class="history-clear-btn" id="history-clear-btn">Xoá toàn bộ lịch sử</button>
+  </div>
 </div>
 
 <script>
@@ -4141,6 +4430,17 @@ async function fixCode(){
       parsed.ai_explain ? parsed.ai_explain.improvements : null
     );
 
+    saveHistoryEntry({
+      id: Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      ts: Date.now(),
+      code: code.slice(0, 6000),
+      hasErrors: !!parsed.has_errors,
+      issuesCount: issues.length,
+      score: (typeof parsed.score === 'number') ? parsed.score : null,
+      summary: (parsed.ai_explain && parsed.ai_explain.result) ? parsed.ai_explain.result : (parsed.explanation || ''),
+      model: model
+    });
+
     staggerResultCards();
 
   }catch(err){
@@ -4318,6 +4618,399 @@ function attachTypingSound(el){
 }
 attachTypingSound(document.getElementById('code-input'));
 attachTypingSound(document.getElementById('problem-text-input'));
+
+/* ---------- ĐĂNG NHẬP & ĐỒNG BỘ (Google Identity Services + backend tuỳ chọn) ---------- */
+const BACKEND_URL_KEY = 'cppfix_backend_url';
+const GOOGLE_CLIENT_ID_KEY = 'cppfix_google_client_id';
+const GOOGLE_PROFILE_KEY = 'cppfix_google_profile'; // hồ sơ Google hiển thị cục bộ khi KHÔNG có backend
+const SESSION_KEY = 'cppfix_session'; // { token, provider, name, avatar, email } khi đã qua backend
+
+const googleLoginBtn = document.getElementById('google-login-btn');
+const githubLoginBtn = document.getElementById('github-login-btn');
+const accountConfigBtn = document.getElementById('account-config-btn');
+const userChip = document.getElementById('user-chip');
+const userAvatar = document.getElementById('user-avatar');
+const userNameLabel = document.getElementById('user-name-label');
+const userLogoutBtn = document.getElementById('user-logout-btn');
+
+const googleSetupBackdrop = document.getElementById('google-setup-backdrop');
+const backendUrlInput = document.getElementById('backend-url-input');
+const googleClientIdInput = document.getElementById('google-client-id-input');
+const modalOriginHint = document.getElementById('modal-origin-hint');
+const googleSetupCancel = document.getElementById('google-setup-cancel');
+const googleSetupSave = document.getElementById('google-setup-save');
+
+modalOriginHint.textContent = location.origin || location.href;
+
+function getBackendUrl(){
+  const v = (localStorage.getItem(BACKEND_URL_KEY) || '').trim();
+  return v ? v.replace(/\/+$/, '') : '';
+}
+function getSession(){
+  try{
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function setSession(session){
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+function clearSession(){
+  localStorage.removeItem(SESSION_KEY);
+}
+function getGoogleProfile(){
+  try{
+    const raw = localStorage.getItem(GOOGLE_PROFILE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+
+function decodeJwtPayload(token){
+  try{
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(
+      atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+    );
+    return JSON.parse(json);
+  }catch(e){ return null; }
+}
+
+function openAccountSetup(){
+  backendUrlInput.value = localStorage.getItem(BACKEND_URL_KEY) || '';
+  googleClientIdInput.value = localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || '';
+  googleSetupBackdrop.classList.add('show');
+}
+accountConfigBtn.addEventListener('click', openAccountSetup);
+googleSetupCancel.addEventListener('click', () => googleSetupBackdrop.classList.remove('show'));
+googleSetupBackdrop.addEventListener('click', (e) => {
+  if(e.target === googleSetupBackdrop) googleSetupBackdrop.classList.remove('show');
+});
+googleSetupSave.addEventListener('click', () => {
+  const backendVal = backendUrlInput.value.trim();
+  const clientIdVal = googleClientIdInput.value.trim();
+
+  if(backendVal && !/^https?:\/\/.+/i.test(backendVal)){
+    backendUrlInput.style.boxShadow = 'inset 0 0 0 1px var(--red)';
+    setTimeout(() => { backendUrlInput.style.boxShadow = 'none'; }, 700);
+    return;
+  }
+  if(clientIdVal && !/apps\.googleusercontent\.com$/.test(clientIdVal)){
+    googleClientIdInput.style.boxShadow = 'inset 0 0 0 1px var(--red)';
+    setTimeout(() => { googleClientIdInput.style.boxShadow = 'none'; }, 700);
+    return;
+  }
+
+  if(backendVal) localStorage.setItem(BACKEND_URL_KEY, backendVal); else localStorage.removeItem(BACKEND_URL_KEY);
+  if(clientIdVal) localStorage.setItem(GOOGLE_CLIENT_ID_KEY, clientIdVal); else localStorage.removeItem(GOOGLE_CLIENT_ID_KEY);
+
+  googleSetupBackdrop.classList.remove('show');
+  showToast('Đã lưu cấu hình.');
+});
+
+// ----- Đăng nhập Google -----
+async function handleGoogleCredentialResponse(response){
+  const backendUrl = getBackendUrl();
+
+  if(backendUrl){
+    // Có backend: gửi id_token lên server để XÁC THỰC LẠI, đổi lấy session token của app (đồng bộ được lịch sử)
+    try{
+      const resp = await fetch(`${backendUrl}/api/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_token: response.credential })
+      });
+      const data = await resp.json();
+      if(!resp.ok || !data.ok){
+        showToast('Đăng nhập Google qua backend thất bại: ' + (data.error || resp.status));
+        return;
+      }
+      setSession({ token: data.token, provider: 'google', name: data.name, avatar: data.avatar, email: data.email || '' });
+      showToast(`Đã đăng nhập Google: ${data.name}`);
+      renderAccountUI();
+      return;
+    }catch(err){
+      showToast('Không gọi được backend để xác thực Google. Kiểm tra lại Backend API URL trong phần cấu hình.');
+      return;
+    }
+  }
+
+  // Không có backend: chỉ hiển thị hồ sơ cục bộ (không đồng bộ được thiết bị khác)
+  const payload = decodeJwtPayload(response.credential);
+  if(!payload){
+    showToast('Không đọc được thông tin đăng nhập Google. Vui lòng thử lại.');
+    return;
+  }
+  const profile = { name: payload.name || payload.email || 'Người dùng Google', email: payload.email || '', picture: payload.picture || '' };
+  localStorage.setItem(GOOGLE_PROFILE_KEY, JSON.stringify(profile));
+  showToast(`Đã đăng nhập Google: ${profile.name} (chỉ lưu cục bộ — chưa cấu hình backend nên chưa đồng bộ được thiết bị khác)`);
+  renderAccountUI();
+}
+
+function tryInitGoogleGIS(clientId){
+  if(!window.google || !google.accounts || !google.accounts.id) return false;
+  google.accounts.id.initialize({ client_id: clientId, callback: handleGoogleCredentialResponse, auto_select: false });
+  return true;
+}
+
+function startGoogleLogin(){
+  const clientId = localStorage.getItem(GOOGLE_CLIENT_ID_KEY);
+  if(!clientId){ openAccountSetup(); return; }
+  let attempts = 0;
+  const tryPrompt = () => {
+    if(tryInitGoogleGIS(clientId)){
+      google.accounts.id.prompt((notification) => {
+        if(notification && (notification.isNotDisplayed?.() || notification.isSkippedMoment?.())){
+          showToast('Trình duyệt chặn hộp thoại đăng nhập Google — hãy tắt tiện ích chặn popup/quảng cáo rồi thử lại.');
+        }
+      });
+    } else if(attempts < 6){
+      attempts++;
+      setTimeout(tryPrompt, 400);
+    } else {
+      showToast('Không tải được thư viện đăng nhập Google. Kiểm tra kết nối mạng và thử lại.');
+    }
+  };
+  tryPrompt();
+}
+googleLoginBtn.addEventListener('click', startGoogleLogin);
+
+// ----- Đăng nhập GitHub (bắt buộc cần backend — GitHub yêu cầu giữ client secret ở server) -----
+function startGithubLogin(){
+  const backendUrl = getBackendUrl();
+  if(!backendUrl){
+    showToast('Cần cấu hình "Backend API URL" trước để đăng nhập GitHub (GitHub bắt buộc phải có server riêng để giữ an toàn client secret).');
+    openAccountSetup();
+    return;
+  }
+  const popup = window.open(`${backendUrl}/api/auth/github/login`, 'cppfix_github_login', 'width=520,height=680');
+  if(!popup){
+    showToast('Trình duyệt đã chặn cửa sổ đăng nhập — hãy cho phép popup cho trang này rồi thử lại.');
+  }
+}
+githubLoginBtn.addEventListener('click', startGithubLogin);
+
+window.addEventListener('message', (e) => {
+  const data = e.data;
+  if(!data || data.type !== 'cppfix-auth') return;
+  if(!data.ok){
+    showToast('Đăng nhập GitHub thất bại: ' + (data.error || 'không rõ lỗi'));
+    return;
+  }
+  setSession({ token: data.token, provider: data.provider, name: data.name, avatar: data.avatar, email: data.email || '' });
+  showToast(`Đã đăng nhập ${data.provider === 'github' ? 'GitHub' : data.provider}: ${data.name}`);
+  renderAccountUI();
+});
+
+// ----- Hiển thị chung + đăng xuất -----
+function renderAccountUI(){
+  const session = getSession();
+  const localGoogleProfile = !session ? getGoogleProfile() : null;
+  const active = session || (localGoogleProfile ? { name: localGoogleProfile.name, avatar: localGoogleProfile.picture } : null);
+
+  if(active){
+    googleLoginBtn.style.display = 'none';
+    githubLoginBtn.style.display = 'none';
+    userChip.style.display = 'flex';
+    userAvatar.src = active.avatar || '';
+    userAvatar.alt = active.name || '';
+    userNameLabel.textContent = active.name || 'Đã đăng nhập';
+  } else {
+    userChip.style.display = 'none';
+    googleLoginBtn.style.display = 'flex';
+    githubLoginBtn.style.display = 'flex';
+  }
+  updateHistoryPanelTitle();
+}
+
+userLogoutBtn.addEventListener('click', () => {
+  clearSession();
+  localStorage.removeItem(GOOGLE_PROFILE_KEY);
+  if(window.google && google.accounts && google.accounts.id){
+    try{ google.accounts.id.disableAutoSelect(); }catch(e){}
+  }
+  showToast('Đã đăng xuất.');
+  renderAccountUI();
+});
+
+renderAccountUI();
+
+/* ---------- LỊCH SỬ PHÂN TÍCH ----------
+   - Nếu đã đăng nhập qua backend (session token): lưu/đọc qua API, đồng bộ thật giữa các thiết bị.
+   - Nếu chưa: lưu trong localStorage của trình duyệt này (như trước), không đồng bộ được. */
+const HISTORY_KEY = 'cppfix_history';
+const HISTORY_MAX = 30;
+
+const historyBtn = document.getElementById('history-btn');
+const historyBackdrop = document.getElementById('history-backdrop');
+const historyCloseBtn = document.getElementById('history-close-btn');
+const historyList = document.getElementById('history-list');
+const historyEmpty = document.getElementById('history-empty');
+const historyClearBtn = document.getElementById('history-clear-btn');
+const historyPanelTitle = document.getElementById('history-panel-title');
+
+function updateHistoryPanelTitle(){
+  const session = getSession();
+  const localProfile = !session ? getGoogleProfile() : null;
+  const name = session ? session.name : (localProfile ? localProfile.name : null);
+  const synced = !!(session && getBackendUrl());
+  historyPanelTitle.textContent = name
+    ? `Lịch sử của ${name}${synced ? ' (đã đồng bộ)' : ''}`
+    : 'Lịch sử phân tích (lưu trên máy này)';
+}
+
+function backendHeaders(){
+  const session = getSession();
+  return session ? { 'Authorization': `Bearer ${session.token}` } : {};
+}
+
+function getLocalHistory(){
+  try{
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(e){ return []; }
+}
+
+async function getHistory(){
+  const backendUrl = getBackendUrl();
+  const session = getSession();
+  if(backendUrl && session){
+    try{
+      const resp = await fetch(`${backendUrl}/api/history`, { headers: backendHeaders() });
+      const data = await resp.json();
+      if(resp.ok && data.ok) return data.items || [];
+      if(resp.status === 401){ showToast('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.'); clearSession(); renderAccountUI(); }
+    }catch(e){ showToast('Không tải được lịch sử từ backend, đang hiện lịch sử lưu cục bộ.'); }
+  }
+  return getLocalHistory();
+}
+
+async function saveHistoryEntry(entry){
+  const backendUrl = getBackendUrl();
+  const session = getSession();
+  if(backendUrl && session){
+    try{
+      await fetch(`${backendUrl}/api/history`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...backendHeaders() },
+        body: JSON.stringify(entry)
+      });
+      return;
+    }catch(e){ /* rớt mạng — vẫn lưu tạm cục bộ bên dưới để không mất dữ liệu */ }
+  }
+  try{
+    let list = getLocalHistory();
+    list.unshift(entry);
+    if(list.length > HISTORY_MAX) list = list.slice(0, HISTORY_MAX);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+  }catch(e){
+    try{
+      let list = getLocalHistory();
+      list = list.slice(0, Math.max(0, list.length - 10));
+      list.unshift(entry);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+    }catch(e2){ /* đành chịu, không lưu được lượt này */ }
+  }
+}
+
+async function deleteHistoryEntry(id){
+  const backendUrl = getBackendUrl();
+  const session = getSession();
+  if(backendUrl && session){
+    try{
+      await fetch(`${backendUrl}/api/history/${encodeURIComponent(id)}`, { method: 'DELETE', headers: backendHeaders() });
+      return;
+    }catch(e){ /* fallthrough */ }
+  }
+  const remaining = getLocalHistory().filter(x => String(x.id) !== String(id));
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(remaining));
+}
+
+async function clearAllHistory(){
+  const backendUrl = getBackendUrl();
+  const session = getSession();
+  if(backendUrl && session){
+    try{
+      await fetch(`${backendUrl}/api/history`, { method: 'DELETE', headers: backendHeaders() });
+    }catch(e){ /* fallthrough */ }
+  }
+  localStorage.removeItem(HISTORY_KEY);
+}
+
+function formatHistoryTime(ts){
+  const d = new Date(ts);
+  const now = new Date();
+  const sameDay = d.toDateString() === now.toDateString();
+  const time = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  if(sameDay) return `Hôm nay, ${time}`;
+  return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) + ', ' + time;
+}
+
+async function renderHistoryList(){
+  historyList.innerHTML = `<div style="text-align:center; padding:20px; color:var(--text-dim); font-size:12.5px;">Đang tải…</div>`;
+  const list = await getHistory();
+  historyEmpty.style.display = list.length ? 'none' : 'block';
+  historyList.innerHTML = list.map((item, i) => `
+    <div class="history-item" style="animation-delay:${Math.min(i, 8) * 0.04}s" data-id="${item.id}">
+      <div class="history-item-top">
+        <span class="history-item-time">${formatHistoryTime(item.ts)}</span>
+        <span class="history-item-badge ${item.hasErrors ? 'err' : 'ok'}">${item.hasErrors ? `${item.issuesCount} vấn đề` : 'Không lỗi'}${item.score != null ? ' · ' + item.score + '/10' : ''}</span>
+      </div>
+      <div class="history-item-summary">${escapeHtml(item.summary || '(không có tóm tắt)')}</div>
+      <div class="history-item-actions">
+        <button type="button" class="history-item-btn history-restore-btn" data-action="restore" data-id="${item.id}">Khôi phục code</button>
+        <button type="button" class="history-item-btn history-delete-btn" data-action="delete" data-id="${item.id}">Xoá</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+historyList.addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if(!btn) return;
+  const id = btn.dataset.id;
+
+  if(btn.dataset.action === 'restore'){
+    const list = await getHistory();
+    const item = list.find(x => String(x.id) === String(id));
+    if(!item) return;
+    codeInput.value = item.code || '';
+    codeInput.dispatchEvent(new Event('input'));
+    historyBackdrop.classList.remove('show');
+    showToast('Đã khôi phục code từ lịch sử vào ô soạn thảo.');
+    codeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else if(btn.dataset.action === 'delete'){
+    await deleteHistoryEntry(id);
+    renderHistoryList();
+  }
+});
+
+let historyClearConfirming = false;
+historyClearBtn.addEventListener('click', async () => {
+  if(!historyClearConfirming){
+    historyClearConfirming = true;
+    const original = historyClearBtn.textContent;
+    historyClearBtn.textContent = 'Bấm lần nữa để xác nhận xoá';
+    setTimeout(() => {
+      historyClearConfirming = false;
+      historyClearBtn.textContent = original;
+    }, 3000);
+    return;
+  }
+  historyClearConfirming = false;
+  await clearAllHistory();
+  historyClearBtn.textContent = 'Xoá toàn bộ lịch sử';
+  renderHistoryList();
+});
+
+historyBtn.addEventListener('click', () => {
+  updateHistoryPanelTitle();
+  renderHistoryList();
+  historyBackdrop.classList.add('show');
+});
+historyCloseBtn.addEventListener('click', () => historyBackdrop.classList.remove('show'));
+historyBackdrop.addEventListener('click', (e) => {
+  if(e.target === historyBackdrop) historyBackdrop.classList.remove('show');
+});
 
 /* ---------- HIỆU ỨNG RƠI: sinh ngẫu nhiên các ký tự code rơi trong nền ---------- */
 (function initCodeRain(){
