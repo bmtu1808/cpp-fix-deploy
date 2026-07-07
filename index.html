@@ -4832,8 +4832,6 @@ userLogoutBtn.addEventListener('click', () => {
   renderAccountUI();
 });
 
-renderAccountUI();
-
 /* ---------- LỊCH SỬ PHÂN TÍCH ----------
    - Nếu đã đăng nhập qua backend (session token): lưu/đọc qua API, đồng bộ thật giữa các thiết bị.
    - Nếu chưa: lưu trong localStorage của trình duyệt này (như trước), không đồng bộ được. */
@@ -4847,6 +4845,10 @@ const historyList = document.getElementById('history-list');
 const historyEmpty = document.getElementById('history-empty');
 const historyClearBtn = document.getElementById('history-clear-btn');
 const historyPanelTitle = document.getElementById('history-panel-title');
+
+// Gọi SAU khi các biến lịch sử ở trên đã được khai báo (renderAccountUI() có gọi updateHistoryPanelTitle(),
+// hàm này cần historyPanelTitle đã tồn tại — gọi sớm hơn sẽ làm JS dừng giữa chừng, ảnh hưởng các nút phía sau).
+renderAccountUI();
 
 function updateHistoryPanelTitle(){
   const session = getSession();
