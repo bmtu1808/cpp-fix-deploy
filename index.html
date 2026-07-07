@@ -4622,6 +4622,8 @@ attachTypingSound(document.getElementById('problem-text-input'));
 /* ---------- ĐĂNG NHẬP & ĐỒNG BỘ (Google Identity Services + backend tuỳ chọn) ---------- */
 const BACKEND_URL_KEY = 'cppfix_backend_url';
 const GOOGLE_CLIENT_ID_KEY = 'cppfix_google_client_id';
+const DEFAULT_BACKEND_URL = 'https://cppfix-backend.dell-cppfix.workers.dev';
+const DEFAULT_GOOGLE_CLIENT_ID = '228145394151-3oh2kj2jvermurb3djfaqt6ff4nvgsv4.apps.googleusercontent.com';
 const GOOGLE_PROFILE_KEY = 'cppfix_google_profile'; // hồ sơ Google hiển thị cục bộ khi KHÔNG có backend
 const SESSION_KEY = 'cppfix_session'; // { token, provider, name, avatar, email } khi đã qua backend
 
@@ -4643,8 +4645,11 @@ const googleSetupSave = document.getElementById('google-setup-save');
 modalOriginHint.textContent = location.origin || location.href;
 
 function getBackendUrl(){
-  const v = (localStorage.getItem(BACKEND_URL_KEY) || '').trim();
+  const v = (localStorage.getItem(BACKEND_URL_KEY) || DEFAULT_BACKEND_URL || '').trim();
   return v ? v.replace(/\/+$/, '') : '';
+}
+function getGoogleClientId(){
+  return (localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || DEFAULT_GOOGLE_CLIENT_ID || '').trim();
 }
 function getSession(){
   try{
@@ -4676,8 +4681,8 @@ function decodeJwtPayload(token){
 }
 
 function openAccountSetup(){
-  backendUrlInput.value = localStorage.getItem(BACKEND_URL_KEY) || '';
-  googleClientIdInput.value = localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || '';
+  backendUrlInput.value = localStorage.getItem(BACKEND_URL_KEY) || DEFAULT_BACKEND_URL || '';
+  googleClientIdInput.value = localStorage.getItem(GOOGLE_CLIENT_ID_KEY) || DEFAULT_GOOGLE_CLIENT_ID || '';
   googleSetupBackdrop.classList.add('show');
 }
 accountConfigBtn.addEventListener('click', openAccountSetup);
@@ -4753,7 +4758,7 @@ function tryInitGoogleGIS(clientId){
 }
 
 function startGoogleLogin(){
-  const clientId = localStorage.getItem(GOOGLE_CLIENT_ID_KEY);
+  const clientId = getGoogleClientId();
   if(!clientId){ openAccountSetup(); return; }
   let attempts = 0;
   const tryPrompt = () => {
